@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import requests, os, random, time, datetime
 from dotenv import load_dotenv
 from fatigue_model import predict_fatigue, get_feature_importance, simulate_fatigue_trend
@@ -11,6 +11,19 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 app = FastAPI(title="CareFlow API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+class CaregiverCreate(BaseModel):
+    name: str
+    role: str
+    floor: int
+    status: str = "available"
+    active_tasks: int = 0
+    active_episodes: int = 0
+    skills: List[str] = []
+    assignments_today: int = 0
+    eta_minutes: int = 0
+    last_assigned_mins_ago: int = 30
+    photo_url: Optional[str] = None
 
 class AlarmEpisode(BaseModel):
     resident_name: str
@@ -24,6 +37,10 @@ class AlarmEpisode(BaseModel):
 class AssignRequest(BaseModel):
     caregiver_id: str
     resident_name: str
+
+class CompleteEpisodeRequest(BaseModel):
+    episode_id: str
+    caregiver_id: str
 
 CAREGIVERS = [
     {"id":"cg1","name":"Maria John","role":"nurse","floor":2,"status":"available",
@@ -117,6 +134,14 @@ def get_caregivers():
     sh = current_shift_hour()
     return [{**cg, "fatigue": predict_fatigue(cg, shift_hour=sh)} for cg in CAREGIVERS]
 
+@app.post("/caregivers")
+def add_caregiver(cg: CaregiverCreate):
+    new_cg = cg.dict()
+    new_cg["id"] = f"cg{len(CAREGIVERS) + 1}"
+    new_cg["burnout_flag"] = False
+    CAREGIVERS.append(new_cg)
+    return {"success": True, "caregiver": new_cg}
+
 @app.post("/recommend")
 def recommend(episode: AlarmEpisode):
     sh = current_shift_hour()
@@ -140,6 +165,7 @@ def recommend(episode: AlarmEpisode):
 
     EPISODE_HISTORY.append({"id":f"EP{int(time.time())}","resident":episode.resident_name,
         "type":episode.episode_type,"severity":episode.severity,
+        "caregiver_id": scored[0]["caregiver"]["id"],
         "recommended":scored[0]["caregiver"]["name"],
         "recommended_fatigue":scored[0]["fatigue"]["fatigue_score"],
         "timestamp":time.time(),"status":"open","alarms":episode.alarms})
@@ -160,6 +186,30 @@ def assign(req: AssignRequest):
             cg["burnout_flag"] = fatigue["fatigue_level"] in ["High","Critical"]
             return {"success":True,"message":f"{cg['name']} assigned to {req.resident_name}",
                     "updated_fatigue":fatigue}
+    raise HTTPException(status_code=404, detail="Caregiver not found")
+
+@app.post("/complete")
+def complete_episode(req: CompleteEpisodeRequest):
+    # 1. Update Episode Status
+    episode_found = False
+    for ep in EPISODE_HISTORY:
+        if ep["id"] == req.episode_id:
+            ep["status"] = "completed"
+            ep["completed_at"] = time.time()
+            episode_found = True
+            break
+    
+    # 2. Update Caregiver Availability
+    for cg in CAREGIVERS:
+        if cg["id"] == req.caregiver_id:
+            cg["active_episodes"] = max(0, cg["active_episodes"] - 1)
+            cg["active_tasks"] = max(0, cg["active_tasks"] - 1)
+            if cg["active_episodes"] == 0:
+                cg["status"] = "available"
+            return {"success": True, "message": f"Case resolved. {cg['name']} is now free."}
+            
+    if not episode_found:
+        raise HTTPException(status_code=404, detail="Episode not found")
     raise HTTPException(status_code=404, detail="Caregiver not found")
 
 @app.get("/fatigue/all")

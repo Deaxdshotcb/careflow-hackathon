@@ -4,9 +4,9 @@
             "name": "Maria John",
             "role": "nurse",
             "floor": 2,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
             "skills": [
                 "cardiac",
                 "Fall prevention",
@@ -25,14 +25,14 @@
             "name": "Ravi Kumar",
             "role": "caregiver",
             "floor": -1,
-            "status": "available",
-            "active_tasks": 0,
-            "active_episodes": 0,
+            "status": "attending",
+            "active_tasks": 1,
+            "active_episodes": 1,
             "skills": [
                 "fall",
                 "dementia"
             ],
-            "assignments_today": 1,
+            "assignments_today": 2,
             "eta_minutes": 0,
             "last_assigned_mins_ago": 0,
             "photo_url": "",
@@ -45,9 +45,9 @@
             "name": "Priya Nair",
             "role": "nurse",
             "floor": 1,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
             "skills": [
                 "cardiac",
                 "respiratory"
@@ -65,21 +65,21 @@
             "name": "John Smith",
             "role": "caregiver",
             "floor": 2,
-            "status": "available",
-            "active_tasks": 0,
-            "active_episodes": 0,
+            "status": "attending",
+            "active_tasks": 1,
+            "active_episodes": 1,
             "skills": [
                 "mobility",
                 "fall discovery"
             ],
-            "assignments_today": 0,
+            "assignments_today": 1,
             "eta_minutes": 0,
-            "last_assigned_mins_ago": 30,
+            "last_assigned_mins_ago": 0,
             "photo_url": "",
             "id": "cg886",
             "username": "johnsmith66",
             "password": "care9758",
-            "burnout_flag": false
+            "burnout_flag": true
         },
         {
             "name": "Sarah Chen",
@@ -106,9 +106,9 @@
             "name": "David Wilson",
             "role": "caregiver",
             "floor": 1,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
             "skills": [
                 "Dementia",
                 "Feeding"
@@ -139,11 +139,12 @@
                 "SpO2 drop"
             ],
             "timestamp": 1772940621.6569655,
-            "status": "open",
+            "status": "completed",
             "caregiver_id": "cg754",
             "recommended": "Priya Nair",
             "recommended_fatigue": 29.9,
-            "external_alerts": []
+            "external_alerts": [],
+            "completed_at": 1772949075.497972
         },
         {
             "id": "EP1772941585",
@@ -160,11 +161,12 @@
                 "SOS pressed"
             ],
             "timestamp": 1772941585.0281553,
-            "status": "open",
+            "status": "completed",
             "caregiver_id": "cg786",
             "recommended": "David Wilson",
             "recommended_fatigue": 29.9,
-            "external_alerts": []
+            "external_alerts": [],
+            "completed_at": 1772949151.3170016
         },
         {
             "id": "EP1772941613",
@@ -181,11 +183,12 @@
                 "Profuse bleeding"
             ],
             "timestamp": 1772941613.3217518,
-            "status": "open",
+            "status": "completed",
             "caregiver_id": "cg427",
             "recommended": "Maria John",
             "recommended_fatigue": 35.5,
-            "external_alerts": []
+            "external_alerts": [],
+            "completed_at": 1772948915.9039152
         },
         {
             "id": "EP1772942194",
@@ -213,6 +216,48 @@
                 }
             ],
             "completed_at": 1772942406.6106422
+        },
+        {
+            "id": "EP1772944792",
+            "resident": "Mrs. Nair",
+            "resident_name": "Mrs. Nair",
+            "room_number": 108,
+            "floor": 1,
+            "type": "unconscious",
+            "episode_type": "unconscious",
+            "severity": "warning",
+            "trend": "worsening",
+            "alarms": [
+                "Critical vitals drop",
+                "No breathing detected"
+            ],
+            "timestamp": 1772944792.3484623,
+            "status": "open",
+            "caregiver_id": "cg886",
+            "recommended": "John Smith",
+            "recommended_fatigue": 37.1,
+            "external_alerts": []
+        },
+        {
+            "id": "EP1772948065",
+            "resident": "Mr. Thomas",
+            "resident_name": "Mr. Thomas",
+            "room_number": 312,
+            "floor": 3,
+            "type": "unconscious",
+            "episode_type": "unconscious",
+            "severity": "emergency",
+            "trend": "improving",
+            "alarms": [
+                "Critical vitals drop",
+                "No breathing detected"
+            ],
+            "timestamp": 1772948065.0291002,
+            "status": "open",
+            "caregiver_id": "cg242",
+            "recommended": "Ravi Kumar",
+            "recommended_fatigue": 45.3,
+            "external_alerts": []
         }
     ]
 }

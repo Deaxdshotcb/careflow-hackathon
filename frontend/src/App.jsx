@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+// v4.1.0 - Refresh Trigger
 
 const API = "http://localhost:8000";
 
@@ -158,9 +159,15 @@ function LoginPage({ onLogin }) {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("caretaker");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6 selection:bg-rose-500 selection:text-white">
+    <div className="h-screen overflow-hidden bg-zinc-950 flex items-center justify-center p-6 selection:bg-rose-500 selection:text-white relative">
       <div className="relative w-full max-w-lg aspect-square mb-[-150px] animate-pulse">
         <div className="absolute inset-0 bg-rose-600/30 rounded-full blur-[150px]" />
         <div className="absolute inset-0 bg-indigo-600/20 rounded-full blur-[100px] translate-x-12 translate-y-12" />
@@ -183,20 +190,26 @@ function LoginPage({ onLogin }) {
 
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Username</label>
-            <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)}
+            <input type="text" placeholder="Username" value={username} onChange={e => { setUsername(e.target.value); setError(""); }}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:ring-4 focus:ring-rose-500/20 outline-none transition-all" />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Password</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
+            <input type="password" placeholder="••••••••" value={password} onChange={e => { setPassword(e.target.value); setError(""); }}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:ring-4 focus:ring-rose-500/20 outline-none transition-all" />
           </div>
 
-          <button onClick={() => { setLoading(true); onLogin(username, password, role); setTimeout(() => setLoading(false), 2000); }} disabled={loading}
+          <button onClick={() => { setLoading(true); onLogin(username, password, role, (err) => { setError(err); setLoading(false); }); }} disabled={loading}
             className={`w-full ${role === 'admin' ? 'bg-indigo-600' : 'bg-rose-600'} text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 disabled:opacity-50 mt-2`}>
             {loading ? "Signing in..." : "Sign In →"}
           </button>
+
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+              <p className="text-[10px] text-rose-500 font-black uppercase text-center tracking-widest">{error}</p>
+            </div>
+          )}
 
         </div>
       </div>
@@ -467,7 +480,7 @@ function RecommendationCard({ rec, onAssign, loading }) {
       <div className="mt-8 flex flex-col sm:flex-row items-center gap-6 bg-zinc-900 rounded-3xl p-6 text-zinc-100">
         <div className="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-lg animate-float">🤖</div>
         <p className="text-sm font-medium italic opacity-90 flex-1 leading-relaxed">"{rec.explanation}"</p>
-        <button onClick={() => onAssign(cg.id, cg.name)} disabled={loading}
+        <button onClick={() => onAssign(cg.id, cg.name, null, rec.explanation)} disabled={loading}
           className="w-full sm:w-auto bg-white text-zinc-950 hover:bg-indigo-50 px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] transition-all shadow-xl hover:shadow-white/10 active:scale-95 disabled:opacity-50 whitespace-nowrap">
           {loading ? "Assigning..." : "Assign Task Now"}
         </button>
@@ -679,7 +692,7 @@ export default function App() {
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 4000); };
 
-  const handleLogin = async (username, password, role) => {
+  const handleLogin = async (username, password, role, onError) => {
     try {
       const resp = await fetch(`${API}/login`, {
         method: "POST",
@@ -691,9 +704,13 @@ export default function App() {
         setUser(data.user);
         showToast(`Welcome, ${data.user.name}`);
       } else {
+        if (onError) onError("Invalid credentials");
         showToast("Invalid credentials");
       }
-    } catch (e) { showToast("Connection Error"); }
+    } catch (e) {
+      if (onError) onError("Connection Error");
+      showToast("Connection Error");
+    }
   };
 
   const handleLogout = () => {
@@ -796,7 +813,7 @@ export default function App() {
     }
   };
 
-  const handleAssign = async (id, name, currentForm = null) => {
+  const handleAssign = async (id, name, currentForm = null, explanation = null) => {
     setAssigning(true);
     const targetResident = currentForm?.resident_name || form.resident_name;
     const targetRoom = currentForm?.room_number || form.room_number;
@@ -804,7 +821,11 @@ export default function App() {
       const resp = await fetch(`${API}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caregiver_id: id, resident_name: targetResident })
+        body: JSON.stringify({
+          caregiver_id: id,
+          resident_name: targetResident,
+          ai_explanation: explanation
+        })
       });
       const data = await resp.json();
       if (data.phone_notified) {
@@ -1040,10 +1061,13 @@ export default function App() {
 
                 <div className="lg:col-span-8">
                   {!recommendations && !loading && (
-                    <div className="h-full min-h-[600px] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[4rem] p-24 text-center">
-                      <div className="text-8xl mb-12"></div>
-                      <h3 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter mb-6">Awaiting Dispatch Directives</h3>
-                      <p className="text-zinc-500 max-w-lg text-lg font-medium leading-relaxed opacity-70">Initialize a dispatch scan using facility telemetry data to deploy the optimal caregiver to the target room.</p>
+                    <div className="h-full min-h-[300px] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem] p-8 text-center">
+                      <div className="w-20 h-20 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-8 border border-zinc-100 dark:border-zinc-800">
+                        <span className="text-4xl">🛰️</span>
+                      </div>
+                      <h3 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">Awaiting Dispatch Directives</h3>
+                      <p className="text-zinc-500 max-w-md text-sm font-medium leading-relaxed opacity-70 px-4">Initialize a dispatch scan using facility telemetry data to deploy the optimal caregiver to the target room.</p>
+                      <button onClick={() => handleRecommend()} className="mt-8 bg-indigo-600 text-white font-black px-10 py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all">Start Facility Scan</button>
                     </div>
                   )}
                   {loading && (
@@ -1287,24 +1311,35 @@ export default function App() {
                   {[...history].reverse().map((ep, i) => (
                     <div key={i} className={`group bg-white dark:bg-zinc-900 rounded-[2.5rem] border-l-[16px] p-10 shadow-xl flex items-center justify-between gap-10 transition-all hover:translate-x-2 ${SEVERITY_COLOR[ep.severity]?.border} ${(ep.severity === 'critical' || ep.severity === 'emergency') && ep.status === 'open' ? 'animate-pulse-slow' : ''}`}>
                       <div className="flex-1">
-                        <div className="flex items-center gap-6 mb-4">
-                          <h4 className={`text-4xl font-black tracking-tighter ${ep.status === 'completed' ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-900 dark:text-white'}`}>{ep.resident}</h4>
-                          <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-2xl ${ep.status === 'completed' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400' : `${SEVERITY_COLOR[ep.severity]?.bg} ${SEVERITY_COLOR[ep.severity]?.text}`}`}>
+                        <div className="flex items-center gap-6 mb-2">
+                          <h4 className={`text-3xl font-black tracking-tighter ${ep.status === 'completed' ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-900 dark:text-white'}`}>{ep.resident}</h4>
+                          <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-xl ${ep.status === 'completed' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400' : `${SEVERITY_COLOR[ep.severity]?.bg} ${SEVERITY_COLOR[ep.severity]?.text}`}`}>
                             {ep.status === 'completed' ? 'Resolved' : `ALERT_${ep.severity?.toUpperCase()}`}
                           </span>
-                          {ep.status === 'open' && <div className={`w-3 h-3 rounded-full ${SEVERITY_COLOR[ep.severity]?.pulse} shadow-[0_0_15px_rgba(239,68,68,0.5)]`} />}
                         </div>
-                        <div className="flex flex-wrap items-center gap-6 text-[11px] font-black text-zinc-400 uppercase tracking-widest">
-                          <p className="bg-zinc-50 dark:bg-zinc-800 px-3 py-1 rounded-lg">Type: <span className={ep.status === 'completed' ? 'text-zinc-400' : 'text-zinc-900 dark:text-white'}>{ep.type}</span></p>
-                          <span className="opacity-20 text-2xl">/</span>
-                          <p>Staff Assigned: <span className="text-indigo-500">{ep.recommended}</span></p>
-                          <span className="opacity-20 text-2xl">/</span>
-                          <p>Fatigue Level: <span className="text-fuchsia-500">{ep.recommended_fatigue?.toFixed(1)}%</span></p>
+                        {ep.ai_explanation && (
+                          <div className="flex items-start gap-3 bg-zinc-50 dark:bg-black/20 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 mb-4 max-w-2xl">
+                            <span className="text-lg">🤖</span>
+                            <p className="text-xs font-medium italic text-zinc-500 dark:text-zinc-400 leading-relaxed group-hover:line-clamp-none line-clamp-2 transition-all">
+                              "{ep.ai_explanation}"
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                          <p>Room {ep.room_number}</p>
+                          <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                          <p>{ep.type}</p>
+                          {ep.assigned_to && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                              <p className="text-indigo-500">Staff: {ep.assigned_to}</p>
+                            </>
+                          )}
                         </div>
                         {ep.external_alerts?.length > 0 && (
                           <div className="mt-4 flex flex-wrap gap-2">
                             {ep.external_alerts.map((a, idx) => (
-                              <span key={idx} className="bg-rose-600 text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg shadow-lg animate-pulse">
+                              <span key={idx} className="bg-rose-600 text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg">
                                 {a.type} SENT @ {new Date(a.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             ))}

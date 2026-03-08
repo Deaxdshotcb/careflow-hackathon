@@ -38,6 +38,7 @@ class AlarmEpisode(BaseModel):
 class AssignRequest(BaseModel):
     caregiver_id: str
     resident_name: str
+    ai_explanation: Optional[str] = None
 
 class CompleteEpisodeRequest(BaseModel):
     episode_id: str
@@ -272,6 +273,7 @@ def recommend(episode: AlarmEpisode):
         "caregiver_id": scored[0]["caregiver"]["id"],
         "recommended": scored[0]["caregiver"]["name"],
         "recommended_fatigue": scored[0]["fatigue"]["fatigue_score"],
+        "ai_explanation": results[0]["explanation"],
         "external_alerts": []
     }
     EPISODE_HISTORY.append(new_ep)
@@ -286,6 +288,19 @@ def recommend(episode: AlarmEpisode):
 def assign(req: AssignRequest):
     for cg in CAREGIVERS:
         if cg["id"] == req.caregiver_id:
+            # Update the episode in history if we know which one it is
+            target_ep = None
+            for ep in reversed(EPISODE_HISTORY):
+                if ep["resident_name"] == req.resident_name and ep["status"] == "open":
+                    target_ep = ep
+                    break
+            
+            if target_ep:
+                target_ep["caregiver_id"] = req.caregiver_id
+                target_ep["assigned_to"] = cg["name"]
+                if req.ai_explanation:
+                    target_ep["ai_explanation"] = req.ai_explanation
+
             cg["active_episodes"] += 1; cg["active_tasks"] += 1
             cg["assignments_today"] += 1; cg["last_assigned_mins_ago"] = 0
             if cg["status"] == "available": cg["status"] = "attending"

@@ -12,73 +12,13 @@
                 "Fall prevention",
                 "Medication"
             ],
-            "assignments_today": 1,
+            "assignments_today": 2,
             "eta_minutes": 0,
             "last_assigned_mins_ago": 0,
             "photo_url": "/assets/images/female.png",
             "id": "cg427",
             "username": "mariajohn70",
             "password": "care3957",
-            "burnout_flag": true
-        },
-        {
-            "name": "Ravi Kumar",
-            "role": "caregiver",
-            "floor": -1,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
-            "skills": [
-                "fall",
-                "dementia"
-            ],
-            "assignments_today": 2,
-            "eta_minutes": 0,
-            "last_assigned_mins_ago": 0,
-            "photo_url": "",
-            "id": "cg242",
-            "username": "ravikumar63",
-            "password": "care7083",
-            "burnout_flag": true
-        },
-        {
-            "name": "Priya Nair",
-            "role": "nurse",
-            "floor": 1,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
-            "skills": [
-                "cardiac",
-                "respiratory"
-            ],
-            "assignments_today": 2,
-            "eta_minutes": 0,
-            "last_assigned_mins_ago": 0,
-            "photo_url": "",
-            "id": "cg754",
-            "username": "priyanair63",
-            "password": "care6754",
-            "burnout_flag": true
-        },
-        {
-            "name": "John Smith",
-            "role": "caregiver",
-            "floor": 2,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
-            "skills": [
-                "mobility",
-                "fall discovery"
-            ],
-            "assignments_today": 1,
-            "eta_minutes": 0,
-            "last_assigned_mins_ago": 0,
-            "photo_url": "",
-            "id": "cg886",
-            "username": "johnsmith66",
-            "password": "care9758",
             "burnout_flag": true
         },
         {
@@ -93,35 +33,155 @@
                 "wound care",
                 "cardiac"
             ],
-            "assignments_today": 0,
+            "assignments_today": 1,
             "eta_minutes": 0,
-            "last_assigned_mins_ago": 30,
+            "last_assigned_mins_ago": 0,
             "photo_url": "",
             "id": "cg504",
             "username": "sarahchen89",
             "password": "care6430",
-            "burnout_flag": false
+            "burnout_flag": true
         },
         {
-            "name": "David Wilson",
+            "name": "Antony ",
             "role": "caregiver",
-            "floor": 1,
-            "status": "attending",
-            "active_tasks": 1,
-            "active_episodes": 1,
+            "floor": 4,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
             "skills": [
-                "Dementia",
-                "Feeding"
+                "fall",
+                "dementia",
+                "cardiac",
+                "respiratory"
             ],
             "assignments_today": 2,
             "eta_minutes": 0,
             "last_assigned_mins_ago": 0,
-            "photo_url": "",
-            "id": "cg786",
-            "username": "davidwilson85",
-            "password": "care8702",
+            "phone": "+1234567890",
+            "photo_url": "/assets/images/male.png",
+            "id": "cg770",
+            "username": "antony13",
+            "password": "care4874",
             "burnout_flag": true
+        },
+        {
+            "name": "Addwin A",
+            "role": "caregiver",
+            "floor": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "fall",
+                "dementia"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 30,
+            "phone": "+1234567890",
+            "photo_url": "/assets/images/male.png",
+            "id": "cg816",
+            "username": "addwina40",
+            "password": "care8650",
+            "burnout_flag": false
         }
     ],
-    "history": []
+    "history": [
+        {
+            "id": "EP1772951336",
+            "resident": "Mrs. Nair",
+            "resident_name": "Mrs. Nair",
+            "room_number": 108,
+            "floor": 1,
+            "type": "fall",
+            "episode_type": "fall",
+            "severity": "warning",
+            "trend": "improving",
+            "alarms": [
+                "Motion sensor triggered",
+                "No movement detected"
+            ],
+            "timestamp": 1772951336.7670088,
+            "status": "completed",
+            "caregiver_id": "cg770",
+            "recommended": "Antony ",
+            "recommended_fatigue": 28.6,
+            "ai_explanation": "Antony  scores 28.2% \u2014 fully available, light workload, trained in fall. ML fatigue: 28.6/100 (Moderate) \u2014 Suitable for standard assignments. Monitor workload.",
+            "external_alerts": [],
+            "assigned_to": "Antony ",
+            "completed_at": 1772951400.7035923
+        },
+        {
+            "id": "EP1772952150",
+            "resident": "Mrs. Patel",
+            "resident_name": "Mrs. Patel",
+            "room_number": 205,
+            "floor": 2,
+            "type": "unconscious",
+            "episode_type": "unconscious",
+            "severity": "warning",
+            "trend": "stable",
+            "alarms": [
+                "Critical vitals drop",
+                "No breathing detected"
+            ],
+            "timestamp": 1772952150.7066348,
+            "status": "completed",
+            "caregiver_id": "cg427",
+            "recommended": "Maria John",
+            "recommended_fatigue": 37.5,
+            "ai_explanation": "Maria John scores 30.2% \u2014 same floor as Mrs. Patel, fully available, light workload. ML fatigue: 37.5/100 (Moderate) \u2014 Suitable for standard assignments. Monitor workload.",
+            "external_alerts": [],
+            "assigned_to": "Maria John",
+            "completed_at": 1772952188.27429
+        },
+        {
+            "id": "EP1772952499",
+            "resident": "Mrs. Nair",
+            "resident_name": "Mrs. Nair",
+            "room_number": 108,
+            "floor": 1,
+            "type": "wandering",
+            "episode_type": "wandering",
+            "severity": "warning",
+            "trend": "improving",
+            "alarms": [
+                "Geofence breach",
+                "Door sensor triggered"
+            ],
+            "timestamp": 1772952499.6207664,
+            "status": "completed",
+            "caregiver_id": "cg770",
+            "recommended": "Antony ",
+            "recommended_fatigue": 37.2,
+            "ai_explanation": "Antony  scores 27.9% \u2014 fully available, light workload, trained in wandering. ML fatigue: 37.2/100 (Moderate) \u2014 Suitable for standard assignments. Monitor workload.",
+            "external_alerts": [],
+            "assigned_to": "Antony ",
+            "completed_at": 1772952537.731873
+        },
+        {
+            "id": "EP1772952689",
+            "resident": "Mrs. Patel",
+            "resident_name": "Mrs. Patel",
+            "room_number": 205,
+            "floor": 2,
+            "type": "seizure",
+            "episode_type": "seizure",
+            "severity": "warning",
+            "trend": "worsening",
+            "alarms": [
+                "Convulsive movement detected"
+            ],
+            "timestamp": 1772952689.3672895,
+            "status": "completed",
+            "caregiver_id": "cg504",
+            "recommended": "Sarah Chen",
+            "recommended_fatigue": 29.9,
+            "ai_explanation": "Sarah Chen scores 24.6% \u2014 fully available, light workload. ML fatigue: 29.9/100 (Moderate) \u2014 Suitable for standard assignments. Monitor workload.",
+            "external_alerts": [],
+            "assigned_to": "Sarah Chen",
+            "completed_at": 1772952748.7787504
+        }
+    ]
 }

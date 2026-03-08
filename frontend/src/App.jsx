@@ -668,6 +668,19 @@ export default function App() {
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('careflow-dark', 'false'); }
   }, [darkMode]);
 
+  // --- Periodic Data Sync (Admin) ---
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const interval = setInterval(() => {
+        // Only sync if we're not currently scanning or assigning
+        if (!loading && !assigning) {
+          fetchData();
+        }
+      }, 2000); // Trigger every 2 seconds for immediate reflection
+      return () => clearInterval(interval);
+    }
+  }, [user, loading, assigning]);
+
   // --- Auto-Simulation Loop ---
   useEffect(() => {
     if (user?.role === 'admin' && tab === 'dispatch' && !isPaused) {
@@ -1311,7 +1324,9 @@ export default function App() {
                     <div key={i} className={`group bg-white dark:bg-zinc-900 rounded-[2.5rem] border-l-[16px] p-10 shadow-xl flex items-center justify-between gap-10 transition-all hover:translate-x-2 ${SEVERITY_COLOR[ep.severity]?.border} ${(ep.severity === 'critical' || ep.severity === 'emergency') && ep.status === 'open' ? 'animate-pulse-slow' : ''}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-6 mb-2">
-                          <h4 className={`text-3xl font-black tracking-tighter ${ep.status === 'completed' ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-900 dark:text-white'}`}>{ep.resident}</h4>
+                          <h4 className={`text-3xl font-black tracking-tighter ${ep.status === 'completed' ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-900 dark:text-white'}`}>
+                            {ep.resident || ep.resident_name}
+                          </h4>
                           <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-xl ${ep.status === 'completed' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400' : `${SEVERITY_COLOR[ep.severity]?.bg} ${SEVERITY_COLOR[ep.severity]?.text}`}`}>
                             {ep.status === 'completed' ? 'Resolved' : `ALERT_${ep.severity?.toUpperCase()}`}
                           </span>

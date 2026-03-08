@@ -45,14 +45,14 @@
             "name": "Priya Nair",
             "role": "nurse",
             "floor": 1,
-            "status": "available",
-            "active_tasks": 0,
-            "active_episodes": 0,
+            "status": "attending",
+            "active_tasks": 1,
+            "active_episodes": 1,
             "skills": [
                 "cardiac",
                 "respiratory"
             ],
-            "assignments_today": 1,
+            "assignments_today": 2,
             "eta_minutes": 0,
             "last_assigned_mins_ago": 0,
             "photo_url": "",
@@ -106,14 +106,14 @@
             "name": "David Wilson",
             "role": "caregiver",
             "floor": 1,
-            "status": "available",
-            "active_tasks": 0,
-            "active_episodes": 0,
+            "status": "attending",
+            "active_tasks": 1,
+            "active_episodes": 1,
             "skills": [
                 "Dementia",
                 "Feeding"
             ],
-            "assignments_today": 1,
+            "assignments_today": 2,
             "eta_minutes": 0,
             "last_assigned_mins_ago": 0,
             "photo_url": "",
@@ -123,141 +123,5 @@
             "burnout_flag": true
         }
     ],
-    "history": [
-        {
-            "id": "EP1772940621",
-            "resident": "Mrs. Nair",
-            "resident_name": "Mrs. Nair",
-            "room_number": 108,
-            "floor": 1,
-            "type": "respiratory",
-            "episode_type": "respiratory",
-            "severity": "critical",
-            "trend": "stable",
-            "alarms": [
-                "Breathing irregular",
-                "SpO2 drop"
-            ],
-            "timestamp": 1772940621.6569655,
-            "status": "completed",
-            "caregiver_id": "cg754",
-            "recommended": "Priya Nair",
-            "recommended_fatigue": 29.9,
-            "external_alerts": [],
-            "completed_at": 1772949075.497972
-        },
-        {
-            "id": "EP1772941585",
-            "resident": "Mr. George",
-            "resident_name": "Mr. George",
-            "room_number": 101,
-            "floor": 1,
-            "type": "fall",
-            "episode_type": "fall",
-            "severity": "emergency",
-            "trend": "stable",
-            "alarms": [
-                "No movement detected",
-                "SOS pressed"
-            ],
-            "timestamp": 1772941585.0281553,
-            "status": "completed",
-            "caregiver_id": "cg786",
-            "recommended": "David Wilson",
-            "recommended_fatigue": 29.9,
-            "external_alerts": [],
-            "completed_at": 1772949151.3170016
-        },
-        {
-            "id": "EP1772941613",
-            "resident": "Mr. Thomas",
-            "resident_name": "Mr. Thomas",
-            "room_number": 312,
-            "floor": 3,
-            "type": "trauma",
-            "episode_type": "trauma",
-            "severity": "info",
-            "trend": "worsening",
-            "alarms": [
-                "Severe impact detected",
-                "Profuse bleeding"
-            ],
-            "timestamp": 1772941613.3217518,
-            "status": "completed",
-            "caregiver_id": "cg427",
-            "recommended": "Maria John",
-            "recommended_fatigue": 35.5,
-            "external_alerts": [],
-            "completed_at": 1772948915.9039152
-        },
-        {
-            "id": "EP1772942194",
-            "resident": "Mrs. Nair",
-            "resident_name": "Mrs. Nair",
-            "room_number": 108,
-            "floor": 1,
-            "type": "fall",
-            "episode_type": "fall",
-            "severity": "emergency",
-            "trend": "stable",
-            "alarms": [
-                "SOS pressed",
-                "No movement detected"
-            ],
-            "timestamp": 1772942194.8652658,
-            "status": "completed",
-            "caregiver_id": "cg242",
-            "recommended": "Ravi Kumar",
-            "recommended_fatigue": 36.1,
-            "external_alerts": [
-                {
-                    "type": "Ambulance",
-                    "timestamp": 1772942213.0431814
-                }
-            ],
-            "completed_at": 1772942406.6106422
-        },
-        {
-            "id": "EP1772944792",
-            "resident": "Mrs. Nair",
-            "resident_name": "Mrs. Nair",
-            "room_number": 108,
-            "floor": 1,
-            "type": "unconscious",
-            "episode_type": "unconscious",
-            "severity": "warning",
-            "trend": "worsening",
-            "alarms": [
-                "Critical vitals drop",
-                "No breathing detected"
-            ],
-            "timestamp": 1772944792.3484623,
-            "status": "open",
-            "caregiver_id": "cg886",
-            "recommended": "John Smith",
-            "recommended_fatigue": 37.1,
-            "external_alerts": []
-        },
-        {
-            "id": "EP1772948065",
-            "resident": "Mr. Thomas",
-            "resident_name": "Mr. Thomas",
-            "room_number": 312,
-            "floor": 3,
-            "type": "unconscious",
-            "episode_type": "unconscious",
-            "severity": "emergency",
-            "trend": "improving",
-            "alarms": [
-                "Critical vitals drop",
-                "No breathing detected"
-            ],
-            "timestamp": 1772948065.0291002,
-            "status": "open",
-            "caregiver_id": "cg242",
-            "recommended": "Ravi Kumar",
-            "recommended_fatigue": 45.3,
-            "external_alerts": []
-        }
-    ]
+    "history": []
 }

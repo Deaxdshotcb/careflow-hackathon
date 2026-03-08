@@ -1066,8 +1066,7 @@ export default function App() {
                         <span className="text-4xl">🛰️</span>
                       </div>
                       <h3 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">Awaiting Dispatch Directives</h3>
-                      <p className="text-zinc-500 max-w-md text-sm font-medium leading-relaxed opacity-70 px-4">Initialize a dispatch scan using facility telemetry data to deploy the optimal caregiver to the target room.</p>
-                      <button onClick={() => handleRecommend()} className="mt-8 bg-indigo-600 text-white font-black px-10 py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all">Start Facility Scan</button>
+                      <p className="text-zinc-500 max-w-md text-sm font-medium leading-relaxed opacity-70 px-4">The ML Selection Engine is monitoring facility telemetry data to deploy the optimal caregiver to target rooms in real-time.</p>
                     </div>
                   )}
                   {loading && (

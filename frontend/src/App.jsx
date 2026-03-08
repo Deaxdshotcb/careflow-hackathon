@@ -4,6 +4,7 @@ const API = "http://localhost:8000";
 
 // ── Shared Design Tokens ─────────────────────────────────────────────────────
 const SEVERITY_COLOR = {
+  emergency: { bg: "bg-black dark:bg-zinc-950", border: "border-rose-600", badge: "bg-rose-600", text: "text-rose-600 dark:text-rose-500", pulse: "bg-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.8)]" },
   critical: { bg: "bg-red-500/10", border: "border-red-500/50", badge: "bg-red-600", text: "text-red-600 dark:text-red-400", pulse: "bg-red-500" },
   warning: { bg: "bg-amber-500/10", border: "border-amber-500/50", badge: "bg-amber-500", text: "text-amber-600 dark:text-amber-400", pulse: "bg-amber-500" },
   info: { bg: "bg-indigo-500/10", border: "border-indigo-500/50", badge: "bg-indigo-500", text: "text-indigo-600 dark:text-indigo-400", pulse: "bg-indigo-500" },
@@ -151,7 +152,178 @@ function NeuralAvatar({ src, name, className, role }) {
   );
 }
 
-function CaregiverCard({ cg }) {
+// --- Login Page ---
+function LoginPage({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("caretaker");
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6 selection:bg-rose-500 selection:text-white">
+      <div className="relative w-full max-w-lg aspect-square mb-[-150px] animate-pulse">
+        <div className="absolute inset-0 bg-rose-600/30 rounded-full blur-[150px]" />
+        <div className="absolute inset-0 bg-indigo-600/20 rounded-full blur-[100px] translate-x-12 translate-y-12" />
+      </div>
+
+      <div className="relative w-full max-w-[360px] bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 mb-4 shadow-2xl overflow-hidden">
+            <img src={IMAGES.logo} className="w-full h-full object-cover" alt="CareFlow Logo" />
+          </div>
+          <h2 className="text-4xl font-black text-white tracking-tightest mb-1">CareFlow</h2>
+          <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em]">Care Management System</p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+            <button onClick={() => setRole("caretaker")} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${role === 'caretaker' ? 'bg-rose-600 text-white' : 'text-zinc-500 hover:text-white'}`}>Caretaker</button>
+            <button onClick={() => setRole("admin")} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${role === 'admin' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-white'}`}>Admin</button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Username</label>
+            <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:ring-4 focus:ring-rose-500/20 outline-none transition-all" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Password</label>
+            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:ring-4 focus:ring-rose-500/20 outline-none transition-all" />
+          </div>
+
+          <button onClick={() => { setLoading(true); onLogin(username, password, role); setTimeout(() => setLoading(false), 2000); }} disabled={loading}
+            className={`w-full ${role === 'admin' ? 'bg-indigo-600' : 'bg-rose-600'} text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 disabled:opacity-50 mt-2`}>
+            {loading ? "Signing in..." : "Sign In →"}
+          </button>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Caretaker Dashboard ---
+function CaretakerDashboard({ user, onLogout, showToast }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTasks = async () => {
+    try {
+      const resp = await fetch(`${API}/tasks/${user.id}`);
+      const data = await resp.json();
+      if (data.length > tasks.length && tasks.length > 0) {
+        showToast("⚠️ NEW TASK ASSIGNED!");
+        new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => { });
+      }
+      setTasks(data);
+    } catch (e) { console.error("Task Sync Error", e); }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 5000);
+    return () => clearInterval(interval);
+  }, [user.id]);
+
+  const handleComplete = async (taskId) => {
+    try {
+      await fetch(`${API}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ episode_id: taskId, caregiver_id: user.id })
+      });
+      showToast("Task completed successfully");
+      fetchTasks();
+    } catch (e) { showToast("Completion Error"); }
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white p-12">
+      <header className="flex justify-between items-center mb-20 animate-in slide-in-from-top-10 duration-1000">
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-rose-500/30 p-1">
+            <img src={user.photo_url || IMAGES.male} className="w-full h-full object-cover rounded-2xl" />
+          </div>
+          <div>
+            <h1 className="text-5xl font-black tracking-tighter leading-none mb-2">{user.name}</h1>
+            <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">Caretaker Dashboard // Unit Room F{user.floor}</p>
+          </div>
+        </div>
+        <button onClick={onLogout} className="bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl transition-all active:scale-95">Logout</button>
+      </header>
+
+      <main className="max-w-[1400px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-12">
+        <div className="xl:col-span-8">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-3xl font-black tracking-tightest">Your Active Tasks</h2>
+            <div className="flex items-center gap-3 bg-rose-600/10 border border-rose-500/20 px-4 py-2 rounded-xl">
+              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-rose-500">{tasks.length} Pending Incidents</span>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-20 text-center animate-pulse">
+              <p className="text-zinc-500 font-black tracking-[0.5em] uppercase text-[10px]">Loading tasks...</p>
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="py-40 bg-white/5 border border-dashed border-white/10 rounded-[4rem] flex flex-col items-center justify-center text-center">
+              <span className="text-7xl mb-8 opacity-20">📡</span>
+              <h3 className="text-3xl font-black text-zinc-500 tracking-tighter mb-4">No Active Signals</h3>
+              <p className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">System monitoring facility status in real-time</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {tasks.map(task => (
+                <div key={task.id} className={`group bg-zinc-900 border-l-[16px] p-10 rounded-[2.5rem] border-white/5 flex items-center justify-between shadow-2xl transition-all hover:translate-x-2 ${task.severity === 'emergency' ? 'border-rose-600 animate-pulse shadow-rose-600/10' : 'border-indigo-600'}`}>
+                  <div>
+                    <div className="flex items-center gap-6 mb-4">
+                      <h4 className="text-4xl font-black tracking-tighter">{task.resident}</h4>
+                      <span className={`text-[9px] font-black uppercase px-4 py-1.5 rounded-lg ${task.severity === 'emergency' ? 'bg-rose-600' : 'bg-indigo-600'}`}>
+                        Room {task.room_number} // {task.severity}
+                      </span>
+                    </div>
+                    <div className="flex gap-6 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                      <p>Incident: <span className="text-white">{task.type}</span></p>
+                      <p>Timestamp: <span className="text-white">{new Date(task.timestamp * 1000).toLocaleTimeString()}</span></p>
+                    </div>
+                  </div>
+                  <button onClick={() => handleComplete(task.id)} className="bg-white text-zinc-950 px-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-3xl active:scale-95">Mark Task Done</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="xl:col-span-4 space-y-8">
+          <div className="bg-white/5 border border-white/10 rounded-[3rem] p-10">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8 px-2">Staff Status</h3>
+            <div className="space-y-8">
+              <div>
+                <div className="flex justify-between text-[11px] font-black mb-3 px-1">
+                  <span className="uppercase text-zinc-400">Shift Fatigue Level</span>
+                  <span className="text-rose-500">{user.fatigue?.fatigue_score || 0}%</span>
+                </div>
+                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-rose-600 transition-all duration-1000" style={{ width: `${user.fatigue?.fatigue_score || 0}%` }} />
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
+                <p className="text-[9px] font-black text-rose-500 uppercase mb-2">Automated Alerting active</p>
+                <p className="text-[11px] text-zinc-400 font-medium leading-relaxed">The system will automatically notify you if critical patient activities are detected in your sector.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function CaregiverCard({ cg, onDelete, adminView }) {
   const fc = FATIGUE_COLOR[cg.fatigue?.fatigue_level] || FATIGUE_COLOR.Low;
 
   return (
@@ -197,6 +369,25 @@ function CaregiverCard({ cg }) {
           </div>
         </div>
       )}
+
+      {adminView && (
+        <div className="mt-4 p-4 bg-zinc-50 dark:bg-black/40 rounded-[2rem] border border-dashed border-zinc-200 dark:border-zinc-800">
+          <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-3 px-1">Access Credentials</p>
+          <div className="space-y-2">
+            <div className="flex justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl text-[9px] font-bold">
+              <span className="text-zinc-400 uppercase">User</span>
+              <span className="text-indigo-600 dark:text-indigo-400 font-mono tracking-tighter">{cg.username}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => onDelete(cg.id)}
+        className="mt-4 w-full py-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all border border-zinc-100 dark:border-zinc-800"
+      >
+        Remove Staff
+      </button>
     </div>
   );
 }
@@ -225,7 +416,7 @@ function RecommendationCard({ rec, onAssign, loading }) {
             {style.label}
           </div>
           <h3 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter mb-2">{cg.name}</h3>
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">{cg.role} · Optimized Neural Match</p>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">{cg.role} · Optimized Best Match</p>
           <div className="flex flex-wrap justify-center lg:justify-start gap-3">
             <div className="bg-zinc-50 dark:bg-zinc-800 px-4 py-2 rounded-2xl border border-zinc-100 dark:border-zinc-700">
               <span className="text-[10px] font-black text-zinc-400 uppercase block">Proximity</span>
@@ -250,7 +441,7 @@ function RecommendationCard({ rec, onAssign, loading }) {
         <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-3xl p-6 border border-zinc-100 dark:border-zinc-700/50">
           <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-6 px-1 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            Selection Matrix Breakdown
+            Selection Scoring Breakdown
           </h4>
           <div className="space-y-4">
             {Object.entries(rec.breakdown).map(([k, v]) => (
@@ -261,7 +452,7 @@ function RecommendationCard({ rec, onAssign, loading }) {
 
         <div className={`${fc.bg} rounded-3xl p-6 border border-indigo-500/5 flex flex-col justify-center`}>
           <div className="flex justify-between items-center mb-6">
-            <p className={`text-[10px] font-black uppercase tracking-widest ${fc.text}`}>🧠 Neural Strain Analysis</p>
+            <p className={`text-[10px] font-black uppercase tracking-widest ${fc.text}`}>🧠 Staff Fatigue Analysis</p>
             <span className={`text-xs font-black uppercase px-3 py-1 rounded-xl ${fc.badge} text-white`}>{rec.fatigue.fatigue_level}</span>
           </div>
           <p className={`text-lg font-bold italic leading-relaxed ${fc.text} mb-8`}>
@@ -278,7 +469,7 @@ function RecommendationCard({ rec, onAssign, loading }) {
         <p className="text-sm font-medium italic opacity-90 flex-1 leading-relaxed">"{rec.explanation}"</p>
         <button onClick={() => onAssign(cg.id, cg.name)} disabled={loading}
           className="w-full sm:w-auto bg-white text-zinc-950 hover:bg-indigo-50 px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] transition-all shadow-xl hover:shadow-white/10 active:scale-95 disabled:opacity-50 whitespace-nowrap">
-          {loading ? "Transmitting..." : "Initiate Deployment"}
+          {loading ? "Assigning..." : "Assign Task Now"}
         </button>
       </div>
     </div>
@@ -304,7 +495,7 @@ function FatigueTab() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 space-y-4">
       <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Calibrating ML Ensembles...</p>
+      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Analyzing staff data...</p>
     </div>
   );
 
@@ -314,8 +505,8 @@ function FatigueTab() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-xl">
-          <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-[0.2em] mb-1">Strain Atlas</h3>
-          <p className="text-xs text-zinc-400 font-bold mb-8">Shift hour {fatigueData.shift_hour} // Unit Rankings</p>
+          <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-[0.2em] mb-1">Fatigue Overview</h3>
+          <p className="text-xs text-zinc-400 font-bold mb-8">Shift hour {fatigueData.shift_hour} // Staff Rankings</p>
           <div className="space-y-4">
             {[...fatigueData.predictions].sort((a, b) => b.fatigue_score - a.fatigue_score).map(pred => {
               const fc = FATIGUE_COLOR[pred.fatigue_level] || FATIGUE_COLOR.Low;
@@ -350,8 +541,8 @@ function FatigueTab() {
         {!selected ? (
           <div className="h-full min-h-[500px] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem] p-12 text-center group">
             <div className="w-32 h-32 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center text-6xl mb-8 group-hover:scale-110 transition-transform shadow-inner">👁️‍🗨️</div>
-            <h3 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">Unit Analytics Locked</h3>
-            <p className="text-zinc-500 max-w-sm font-medium">Select a field asset from the registry to initialize full neural telemetry breakdown.</p>
+            <h3 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">Staff Details</h3>
+            <p className="text-zinc-500 max-w-sm font-medium">Select a staff member from the list to see their performance details.</p>
           </div>
         ) : !detail ? (
           <div className="h-full flex items-center justify-center py-40">
@@ -363,7 +554,7 @@ function FatigueTab() {
               <div className="absolute top-0 right-0 p-10">
                 <div className="text-right">
                   <p className="text-7xl font-black tracking-tighter leading-none" style={{ color: detail.fatigue.fatigue_color }}>{detail.fatigue.fatigue_score}%</p>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-2">Active Bio-Strain Index</p>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-2">Active Fatigue Score</p>
                 </div>
               </div>
               <div className="flex items-center gap-6 mb-12">
@@ -381,8 +572,8 @@ function FatigueTab() {
 
               <div className={`rounded-[2rem] p-8 mb-10 ${FATIGUE_COLOR[detail.fatigue.fatigue_level]?.bg} border border-indigo-500/10`}>
                 <div className="flex items-center justify-between mb-6">
-                  <span className={`text-xl font-black uppercase tracking-tighter ${FATIGUE_COLOR[detail.fatigue.fatigue_level]?.text}`}>{detail.fatigue.fatigue_level} STRAIN ACTIVE</span>
-                  <span className="bg-indigo-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl uppercase shadow-lg whitespace-nowrap">Penalty Multiplier: ×{detail.fatigue.dispatch_penalty}</span>
+                  <span className={`text-xl font-black uppercase tracking-tighter ${FATIGUE_COLOR[detail.fatigue.fatigue_level]?.text}`}>{detail.fatigue.fatigue_level} FATIGUE ACTIVE</span>
+                  <span className="bg-indigo-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl uppercase shadow-lg whitespace-nowrap">Load Multiplier: ×{detail.fatigue.dispatch_penalty}</span>
                 </div>
                 <p className={`text-xl font-bold italic leading-relaxed ${FATIGUE_COLOR[detail.fatigue.fatigue_level]?.text} mb-8 opacity-90`}>"{detail.fatigue.recommendation}"</p>
                 <div className="w-full bg-white/40 dark:bg-black/40 rounded-full h-3">
@@ -390,7 +581,7 @@ function FatigueTab() {
                 </div>
               </div>
 
-              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 px-2">Telemetric Input Values</h4>
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 px-2">Performance Data Values</h4>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(detail.fatigue.feature_breakdown).map(([k, v]) => (
                   <div key={k} className="bg-zinc-50 dark:bg-zinc-800/80 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-700">
@@ -424,9 +615,11 @@ function FatigueTab() {
   );
 }
 
+
 // ── Main App Logic ──────────────────────────────────────────────────────────
 
 export default function App() {
+  const [user, setUser] = useState(null);
   const [caregivers, setCaregivers] = useState([]);
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
@@ -440,6 +633,8 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('careflow-dark') === 'true');
   const [showAddCg, setShowAddCg] = useState(false);
+  const [scanIndex, setScanIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [newCg, setNewCg] = useState({
     name: "", role: "caregiver", floor: 1,
     active_tasks: 0, active_episodes: 0, assignments_today: 0,
@@ -454,12 +649,58 @@ export default function App() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
   useEffect(() => {
     if (darkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('careflow-dark', 'true'); }
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('careflow-dark', 'false'); }
   }, [darkMode]);
 
+  // --- Auto-Simulation Loop ---
+  useEffect(() => {
+    if (user?.role === 'admin' && tab === 'dispatch' && !isPaused) {
+      const interval = setInterval(() => {
+        if (!loading && !recommendations) {
+          handleSimulate(true);
+        }
+      }, 15000); // Trigger every 15 seconds if idle
+      return () => clearInterval(interval);
+    }
+  }, [user, tab, loading, recommendations, isPaused]);
+
+  // --- Scanning Animation Logic ---
+  useEffect(() => {
+    if (loading && caregivers.length > 0) {
+      const interval = setInterval(() => {
+        setScanIndex(prev => (prev + 1) % caregivers.length);
+      }, 150);
+      return () => clearInterval(interval);
+    }
+  }, [loading, caregivers]);
+
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 4000); };
+
+  const handleLogin = async (username, password, role) => {
+    try {
+      const resp = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, role })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setUser(data.user);
+        showToast(`Welcome, ${data.user.name}`);
+      } else {
+        showToast("Invalid credentials");
+      }
+    } catch (e) { showToast("Connection Error"); }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setTab("dispatch");
+    showToast("Logged out successfully");
+  };
 
   const handleCreateCaregiver = async () => {
     if (!newCg.name) return showToast("Caregiver name required");
@@ -485,28 +726,94 @@ export default function App() {
     } catch (e) { showToast("Error adding caregiver"); }
   };
 
-  const handleRecommend = async () => {
-    setLoading(true); setRecommendations(null);
+  const handleClearHistory = async () => {
+    if (!window.confirm("Purge all telemetry history?")) return;
     try {
-      const resp = await fetch(`${API}/recommend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, room_number: Number(form.room_number), floor: Number(form.floor) }) });
+      const resp = await fetch(`${API}/history/clear`, { method: "DELETE" });
+      if (resp.ok) {
+        showToast("Historical data purged");
+        fetchData();
+      }
+    } catch (e) { showToast("Purge failed"); }
+  };
+
+  const handleRecommend = async (overrideForm = null) => {
+    setLoading(true); setRecommendations(null);
+    const targetForm = overrideForm || form;
+
+    // Artificial delay for the "Scanning Animation"
+    await new Promise(r => setTimeout(r, 4500));
+
+    try {
+      const resp = await fetch(`${API}/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...targetForm, room_number: Number(targetForm.room_number), floor: Number(targetForm.floor) })
+      });
       const data = await resp.json();
-      setRecommendations(data.recommendations); setEpisode(data.episode); setAllScores(data.all_scores);
+      if (data.success) {
+        setRecommendations(data.recommendations);
+        setEpisode(data.episode);
+        setAllScores(data.all_scores);
+
+        // Auto-assign top recommendation
+        if (data.recommendations?.length > 0) {
+          const top = data.recommendations[0].caregiver;
+          showToast(`AUTO-MARK: Deployment Initiated for ${top.name}`);
+
+          // Longer delay to let user see the final choice (as requested)
+          setTimeout(async () => {
+            await handleAssign(top.id, top.name, targetForm);
+          }, 5000);
+        }
+      } else {
+        showToast(data.message || "No caregivers available");
+        setRecommendations(null);
+        setEpisode(null);
+      }
     } catch (e) { showToast("Connection Error: Backend Offline"); }
     setLoading(false);
   };
 
-  const handleSimulate = async () => {
-    const r = await fetch(`${API}/simulate`, { method: "POST" });
-    setForm({ ...await r.json(), alarms: [] });
-    showToast("Simulation Generated");
+  const handleDeleteCaregiver = async (id) => {
+    try {
+      const resp = await fetch(`${API}/caregivers/${id}`, { method: "DELETE" });
+      if (resp.ok) {
+        showToast("Caregiver removed from system");
+        fetchData();
+      }
+    } catch (e) { showToast("Error deleting caregiver"); }
   };
 
-  const handleAssign = async (id, name) => {
+  const handleSimulate = async (auto = false) => {
+    const r = await fetch(`${API}/simulate`, { method: "POST" });
+    const newForm = await r.json();
+    setForm({ ...newForm, alarms: [] });
+    if (auto) {
+      handleRecommend(newForm);
+    } else {
+      showToast("Data Synced from Floor Sensors");
+    }
+  };
+
+  const handleAssign = async (id, name, currentForm = null) => {
     setAssigning(true);
+    const targetResident = currentForm?.resident_name || form.resident_name;
+    const targetRoom = currentForm?.room_number || form.room_number;
     try {
-      await fetch(`${API}/assign`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caregiver_id: id, resident_name: form.resident_name }) });
-      showToast(`ASSIGNED: ${name} to Room ${form.room_number}`);
-      setRecommendations(null); fetchData();
+      const resp = await fetch(`${API}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caregiver_id: id, resident_name: targetResident })
+      });
+      const data = await resp.json();
+      if (data.phone_notified) {
+        showToast(`📲 SOS SENT: ${name} notified via Phone`);
+      } else {
+        showToast(`DISPATCHED: ${name} to Room ${targetRoom}`);
+      }
+      setRecommendations(null);
+      fetchData();
     } catch (e) { showToast("Assignment Failure"); }
     setAssigning(false);
   };
@@ -520,9 +827,46 @@ export default function App() {
       });
       if (resp.ok) {
         showToast("Case resolved. Staff availability updated.");
+
+        // If this was the active emergency/scan being viewed, reset the Dispatch tab
+        if (episode?.id === episodeId) {
+          setEpisode(null);
+          setRecommendations(null);
+        }
+
         fetchData();
       }
     } catch (e) { showToast("Error updating status"); }
+  };
+
+  const handleEmergencyAlert = async (type) => {
+    if (!episode?.id) return;
+
+    // Check if already dispatched to prevent duplicates
+    if (episode.external_alerts?.some(a => a.type === type)) {
+      showToast(`${type.toUpperCase()} already dispatched`);
+      return;
+    }
+
+    // Explicit browser alert as requested
+    alert(`[SYSTEM ALERT] Emergency services triggered: ${type.toUpperCase()}\nDispatching to Room ${form.room_number}...`);
+
+    try {
+      const resp = await fetch(`${API}/history/${episode.id}/alert?alert_type=${type}`, { method: "POST" });
+      const data = await resp.json();
+
+      if (data.success) {
+        showToast(`${type.toUpperCase()} SIGNAL SENT`);
+        // Update local state so buttons reflect the change immediately
+        setEpisode(prev => ({
+          ...prev,
+          external_alerts: [...(prev.external_alerts || []), { type, timestamp: Date.now() / 1000 }]
+        }));
+        fetchData();
+      } else {
+        showToast(data.message);
+      }
+    } catch (e) { showToast("Signal Failure"); }
   };
 
   const tabs = [
@@ -531,6 +875,11 @@ export default function App() {
     { id: "caregivers", label: "Caregivers", icon: "" },
     { id: "history", label: "History", icon: "" },
   ];
+
+
+  if (!user) return <LoginPage onLogin={handleLogin} />;
+
+  if (user.role === 'caretaker') return <CaretakerDashboard user={user} onLogout={handleLogout} showToast={showToast} />;
 
   return (
     <div className={`${darkMode ? 'dark' : ''} min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans transition-colors duration-700 selection:bg-indigo-500 selection:text-white`}>
@@ -545,13 +894,12 @@ export default function App() {
 
         {/* --- Header --- */}
         <header className="fixed top-0 left-0 w-full z-50 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-zinc-200 dark:border-zinc-800/50 h-24 flex items-center px-12 justify-between">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 rotate-3 transition-transform hover:rotate-0 cursor-pointer">
+          <div className="flex items-center gap-6 cursor-pointer group" onClick={() => setTab("dispatch")}>
+            <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 rotate-3 transition-transform group-hover:rotate-0">
               <img src={IMAGES.logo} className="w-full h-full object-cover" alt="CareFlow Logo" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tighter leading-none dark:text-white mb-1">CareFlow</h1>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.3em] opacity-60">Care Management Dashboard // v4.0.1</p>
+              <h1 className="text-4xl font-black tracking-tighter leading-none dark:text-white">CareFlow</h1>
             </div>
           </div>
 
@@ -573,6 +921,9 @@ export default function App() {
             <button onClick={() => setDarkMode(!darkMode)} className="w-14 h-14 rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-2xl transition-all shadow-lg active:scale-90 hover:shadow-indigo-500/10">
               {darkMode ? "🌙" : "☀️"}
             </button>
+            <button onClick={handleLogout} className="bg-zinc-900 dark:bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-xl transition-all active:scale-95">
+              Sign Out
+            </button>
           </div>
         </header>
 
@@ -589,6 +940,25 @@ export default function App() {
         <main className="pt-52 px-12 pb-24 max-w-[1700px] mx-auto">
           {tab === "dispatch" && (
             <div className="animate-in fade-in duration-1000">
+              {episode?.severity === 'emergency' && (
+                <div className="bg-rose-600 text-white p-6 rounded-[2rem] mb-12 flex items-center justify-between animate-pulse shadow-[0_0_50px_rgba(225,29,72,0.4)]">
+                  <div className="flex items-center gap-6">
+                    <span className="text-5xl">🚨</span>
+                    <div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">Emergency Protocol Active</h3>
+                      <p className="text-sm font-bold opacity-90 uppercase tracking-widest">Immediate intervention required for {episode.resident_name} in Room {episode.room_number}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    {episode.external_alerts?.some(a => a.type === "Ambulance") ? (
+                      <span className="bg-white/20 text-white font-black px-8 py-3 rounded-xl uppercase text-xs backdrop-blur-md border border-white/30">Ambulance Dispatched</span>
+                    ) : (
+                      <button onClick={() => handleEmergencyAlert("Ambulance")} className="bg-white text-rose-600 font-black px-8 py-3 rounded-xl uppercase text-xs hover:bg-zinc-100 transition-all shadow-2xl">Summon Help</button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {(!recommendations && !loading) && (
                 <div className="relative h-[500px] rounded-[4rem] overflow-hidden mb-16 group shadow-3xl">
                   <img src={IMAGES.hero} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 blur-[2px] brightness-50" />
@@ -607,10 +977,15 @@ export default function App() {
                   <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-10 shadow-2xl">
                     <div className="flex items-center justify-between mb-10">
                       <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-4">
-                        <span className="w-4 h-4 rounded-full bg-rose-500 animate-pulse-slow" />
-                        Active Dispatch
+                        <span className={`w-4 h-4 rounded-full ${isPaused ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse-slow'}`} />
+                        AI Dispatch Sensor
                       </h2>
-                      <button onClick={handleSimulate} className="text-[9px] font-black uppercase tracking-[0.2em] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-4 py-2 rounded-xl hover:bg-zinc-200 transition-all active:scale-95 shadow-lg">Load Data</button>
+                      <button
+                        onClick={() => setIsPaused(!isPaused)}
+                        className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border transition-all active:scale-95 ${isPaused ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}`}
+                      >
+                        {isPaused ? "▶ Resume" : "⏸ Pause Sensor"}
+                      </button>
                     </div>
 
                     <div className="space-y-8">
@@ -623,21 +998,23 @@ export default function App() {
                       ))}
 
                       <div className="grid grid-cols-1 gap-6">
-                        {[{ l: "Episode Type", k: "episode_type", o: ["cardiac", "fall", "respiratory", "wandering"] }, { l: "Priority", k: "severity", o: ["critical", "warning", "info"] }].map(f => (
+                        {[{ l: "Episode Type", k: "episode_type", o: ["cardiac", "fall", "respiratory", "wandering", "unconscious", "seizure", "trauma"] }, { l: "Priority", k: "severity", o: ["emergency", "critical", "warning", "info"] }].map(f => (
                           <div key={f.k}>
                             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-3 px-1">{f.l}</label>
                             <select value={form[f.k]} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))}
-                              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 text-sm font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all outline-none">
+                              className={`w-full bg-zinc-50 dark:bg-zinc-900 border ${form.severity === 'emergency' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-zinc-200 dark:border-zinc-800'} rounded-2xl px-6 py-5 text-sm font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all outline-none`}>
                               {f.o.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                             </select>
                           </div>
                         ))}
                       </div>
 
-                      <button onClick={handleRecommend} disabled={loading}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-6 rounded-3xl text-sm uppercase tracking-[0.3em] shadow-2xl shadow-indigo-600/40 transition-all active:scale-[0.98] disabled:opacity-50 mt-4 group">
-                        {loading ? "Calculating Rank..." : <span className="flex items-center justify-center gap-3">Find Best Caregiver <span className="group-hover:translate-x-2 transition-transform">→</span></span>}
-                      </button>
+                      <div className="p-8 bg-zinc-50 dark:bg-black/40 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center">
+                        <div className="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                        </div>
+                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-relaxed">System monitoring real-time facility sensors... Auto-dispatching responders upon incident detection.</p>
+                      </div>
                     </div>
                   </div>
 
@@ -670,22 +1047,68 @@ export default function App() {
                     </div>
                   )}
                   {loading && (
-                    <div className="h-full min-h-[600px] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[4rem] p-24 text-center">
-                      <div className="relative w-32 h-32 mb-12">
-                        <div className="absolute inset-0 border-[12px] border-indigo-100 dark:border-zinc-800 rounded-full" />
-                        <div className="absolute inset-0 border-[12px] border-indigo-600 rounded-full border-t-transparent animate-spin" />
+                    <div className="h-full min-h-[600px] flex flex-col items-center justify-center bg-zinc-900 border border-white/5 rounded-[4rem] p-24 text-center relative overflow-hidden">
+                      {/* Radar Animation Background */}
+                      <div className="absolute inset-0 z-0 opacity-10">
+                        <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 scale-[3]" />
+                        <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 delay-300 scale-[2]" />
+                        <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 delay-700 scale-[1]" />
+                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-transparent w-full h-full rotate-45 origin-center animate-spin-slow" />
                       </div>
-                      <h3 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">System Synthesis Active</h3>
-                      <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] animate-pulse">Optimizing Dispatch // Fatigue Analysis</p>
+
+                      <div className="relative z-10">
+                        <div className="relative w-48 h-48 mb-12 mx-auto">
+                          <div className="absolute inset-0 bg-indigo-600/20 rounded-[3rem] blur-3xl animate-pulse" />
+                          <NeuralAvatar
+                            src={caregivers[scanIndex]?.photo_url}
+                            name={caregivers[scanIndex]?.name}
+                            className="w-full h-full rounded-[3rem] border-4 border-indigo-500 shadow-3xl text-6xl"
+                          />
+                          <div className="absolute -top-4 -right-4 bg-indigo-600 text-white text-[10px] font-black px-4 py-2 rounded-xl animate-bounce">SCANNING STAFF</div>
+                        </div>
+
+                        <h3 className="text-5xl font-black text-white tracking-tightest mb-4">ML SELECTION ENGINE</h3>
+                        <p className="text-indigo-400 font-bold uppercase tracking-[0.5em] mb-10 text-xs">Matching Best Responder: {caregivers[scanIndex]?.name?.toUpperCase()}</p>
+
+                        <div className="flex justify-center gap-2">
+                          {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />)}
+                        </div>
+                      </div>
+
+                      <div className="absolute bottom-20 left-0 w-full flex justify-center gap-12 text-[10px] font-black text-zinc-600 uppercase tracking-widest px-20">
+                        <p className="animate-pulse">Analyzing Proximity</p>
+                        <p className="animate-pulse delay-75">Fatigue Calculation</p>
+                        <p className="animate-pulse delay-150">Skill Matching</p>
+                      </div>
                     </div>
                   )}
                   {recommendations && (
                     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-                      <header className="flex items-end justify-between px-4">
+                      <header className="flex flex-col md:flex-row md:items-end justify-between px-4 gap-6">
                         <div>
-                          <h2 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter">Recommended Caregivers</h2>
+                          <h2 className={`text-5xl font-black ${episode?.severity === 'emergency' ? 'text-rose-600' : 'text-zinc-900 dark:text-white'} tracking-tighter`}>
+                            {episode?.severity === 'emergency' ? '🚨 ULTRA-CRITICAL DISPATCH' : 'Recommended Caregivers'}
+                          </h2>
                           <p className="text-zinc-400 font-bold uppercase tracking-widest mt-2">Target Resident: {episode?.resident_name} // {episode?.severity?.toUpperCase()} ALERT</p>
                         </div>
+                        {episode?.severity === 'emergency' && (
+                          <div className="flex gap-4">
+                            <button
+                              onClick={() => handleEmergencyAlert("Ambulance")}
+                              disabled={episode.external_alerts?.some(a => a.type === "Ambulance")}
+                              className={`${episode.external_alerts?.some(a => a.type === "Ambulance") ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-rose-600 text-white shadow-xl shadow-rose-600/30 hover:scale-105'} font-black px-6 py-3 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-all`}
+                            >
+                              {episode.external_alerts?.some(a => a.type === "Ambulance") ? "Ambulance Dispatched ✅" : "Summon Ambulance"}
+                            </button>
+                            <button
+                              onClick={() => handleEmergencyAlert("Doctor")}
+                              disabled={episode.external_alerts?.some(a => a.type === "Doctor")}
+                              className={`${episode.external_alerts?.some(a => a.type === "Doctor") ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-zinc-900 dark:bg-white dark:text-zinc-900 text-white shadow-xl hover:scale-105'} font-black px-6 py-3 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-all`}
+                            >
+                              {episode.external_alerts?.some(a => a.type === "Doctor") ? "Doctor Notified ✅" : "Alert Doctor"}
+                            </button>
+                          </div>
+                        )}
                       </header>
                       <div className="space-y-10">
                         {recommendations.map(rec => <RecommendationCard key={rec.rank} rec={rec} onAssign={handleAssign} loading={assigning} />)}
@@ -710,6 +1133,7 @@ export default function App() {
                   {showAddCg ? "Close Form" : "Add New Caregiver"}
                 </button>
               </div>
+
 
               {showAddCg && (
                 <div className="mb-16 bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-10 shadow-3xl animate-in slide-in-from-top-10 duration-700">
@@ -833,7 +1257,7 @@ export default function App() {
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {caregivers.map(cg => <CaregiverCard key={cg.id} cg={cg} />)}
+                {caregivers.map(cg => <CaregiverCard key={cg.id} cg={cg} onDelete={handleDeleteCaregiver} adminView={true} />)}
               </div>
             </div>
           )}
@@ -845,6 +1269,14 @@ export default function App() {
                   <h2 className="text-6xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none mb-4">History</h2>
                   <p className="text-lg text-zinc-500 font-medium opacity-80 uppercase tracking-widest text-xs font-black">Archive of past assignments</p>
                 </div>
+                {history.length > 0 && (
+                  <button
+                    onClick={handleClearHistory}
+                    className="text-[10px] font-black uppercase tracking-widest bg-rose-600/10 text-rose-600 border border-rose-500/20 px-8 py-4 rounded-2xl hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-xl shadow-rose-600/10"
+                  >
+                    Clear Archive
+                  </button>
+                )}
               </div>
               {history.length === 0 ? (
                 <div className="py-40 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem] text-center">
@@ -853,7 +1285,7 @@ export default function App() {
               ) : (
                 <div className="space-y-6">
                   {[...history].reverse().map((ep, i) => (
-                    <div key={i} className={`group bg-white dark:bg-zinc-900 rounded-[2.5rem] border-l-[16px] p-10 shadow-xl flex items-center justify-between gap-10 transition-all hover:translate-x-2 ${SEVERITY_COLOR[ep.severity]?.border} ${ep.severity === 'critical' && ep.status === 'open' ? 'animate-pulse-slow' : ''}`}>
+                    <div key={i} className={`group bg-white dark:bg-zinc-900 rounded-[2.5rem] border-l-[16px] p-10 shadow-xl flex items-center justify-between gap-10 transition-all hover:translate-x-2 ${SEVERITY_COLOR[ep.severity]?.border} ${(ep.severity === 'critical' || ep.severity === 'emergency') && ep.status === 'open' ? 'animate-pulse-slow' : ''}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-6 mb-4">
                           <h4 className={`text-4xl font-black tracking-tighter ${ep.status === 'completed' ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-900 dark:text-white'}`}>{ep.resident}</h4>
@@ -869,16 +1301,22 @@ export default function App() {
                           <span className="opacity-20 text-2xl">/</span>
                           <p>Fatigue Level: <span className="text-fuchsia-500">{ep.recommended_fatigue?.toFixed(1)}%</span></p>
                         </div>
+                        {ep.external_alerts?.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {ep.external_alerts.map((a, idx) => (
+                              <span key={idx} className="bg-rose-600 text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg shadow-lg animate-pulse">
+                                {a.type} SENT @ {new Date(a.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col items-end gap-4 shrink-0">
                         {ep.status === 'open' ? (
-                          <button
-                            onClick={() => handleComplete(ep.id, ep.caregiver_id)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-all active:scale-95"
-                          >
-                            Mark Complete
-                          </button>
+                          <div className="text-[10px] font-black uppercase text-amber-500 border border-amber-500/20 px-4 py-2 rounded-lg bg-amber-500/5">
+                            Task Active
+                          </div>
                         ) : (
                           <div className="text-[10px] font-black uppercase text-emerald-500 border border-emerald-500/20 px-4 py-2 rounded-lg bg-emerald-500/5">
                             Task Resolved

@@ -41,6 +41,8 @@ FEATURES = [
     "role_numeric",
     "consecutive_assignments",
     "floor_changes_today",
+    "system_pressure",
+    "active_intensity",
 ]
 
 
@@ -66,6 +68,8 @@ def generate_training_data(n=2000, seed=42):
     consecutive_assignments  = rng.randint(0, assignments_today + 1)
     consecutive_assignments  = np.minimum(consecutive_assignments, assignments_today)
     floor_changes_today      = rng.randint(0, 10, n)
+    system_pressure          = rng.uniform(0.1, 2.5, n) # ratio of active cases to total staff
+    active_intensity         = active_episodes * 1.5 + active_tasks * 0.8 # weighted complexity
 
     # ── Ground truth fatigue formula (domain-logic derived) ──
     fatigue = (
@@ -78,7 +82,9 @@ def generate_training_data(n=2000, seed=42):
         (time_since_break_mins / 60) * 4.0 +
         role_numeric             * 5.0 +   # nurses take on more complex tasks
         consecutive_assignments  * 3.5 +
-        floor_changes_today      * 2.0
+        floor_changes_today      * 2.0 +
+        system_pressure          * 12.0 +   # High impact: environmental stress
+        active_intensity         * 9.0      # Instant impact: task complexity
     )
 
     # Add realistic noise
@@ -90,7 +96,8 @@ def generate_training_data(n=2000, seed=42):
     X = np.column_stack([
         assignments_today, active_episodes, active_tasks, shift_hour,
         critical_episodes_today, avg_episode_severity, time_since_break_mins,
-        role_numeric, consecutive_assignments, floor_changes_today
+        role_numeric, consecutive_assignments, floor_changes_today,
+        system_pressure, active_intensity
     ])
 
     return X, fatigue
@@ -123,7 +130,7 @@ _MODEL = train_model()
 
 # ── FEATURE EXTRACTION FROM CAREGIVER DICT ──────────────────────────────────
 
-def extract_features(cg: dict, shift_hour: int = 6) -> np.ndarray:
+def extract_features(cg: dict, shift_hour: int = 6, system_pressure: float = 0.5) -> np.ndarray:
     """
     Convert a caregiver dict into the feature vector expected by the model.
     
@@ -167,6 +174,8 @@ def extract_features(cg: dict, shift_hour: int = 6) -> np.ndarray:
         role_numeric,
         consecutive_assignments,
         floor_changes_today,
+        system_pressure,
+        cg.get("active_episodes", 0) * 1.8 + cg.get("active_tasks", 0) * 0.7,
     ]])
 
     return features
@@ -174,7 +183,7 @@ def extract_features(cg: dict, shift_hour: int = 6) -> np.ndarray:
 
 # ── PREDICTION ───────────────────────────────────────────────────────────────
 
-def predict_fatigue(cg: dict, shift_hour: int = 6) -> dict:
+def predict_fatigue(cg: dict, shift_hour: int = 6, system_pressure: float = 0.5) -> dict:
     """
     Predict fatigue for a single caregiver.
 
@@ -186,7 +195,7 @@ def predict_fatigue(cg: dict, shift_hour: int = 6) -> dict:
         feature_breakdown : dict of feature values used
         dispatch_penalty  : multiplier applied to dispatch score (0.4–1.0)
     """
-    X = extract_features(cg, shift_hour)
+    X = extract_features(cg, shift_hour, system_pressure)
     raw_score = float(np.clip(_MODEL.predict(X)[0], 0, 100))
     score = round(raw_score, 1)
 
@@ -213,7 +222,7 @@ def predict_fatigue(cg: dict, shift_hour: int = 6) -> dict:
         penalty = 0.40
 
     # ── Feature breakdown for UI transparency ──
-    feat_vals = extract_features(cg, shift_hour)[0]
+    feat_vals = extract_features(cg, shift_hour, system_pressure)[0]
     feature_breakdown = {name: round(float(val), 2) for name, val in zip(FEATURES, feat_vals)}
 
     return {
@@ -226,11 +235,11 @@ def predict_fatigue(cg: dict, shift_hour: int = 6) -> dict:
     }
 
 
-def predict_fatigue_all(caregivers: list, shift_hour: int = 6) -> dict:
+def predict_fatigue_all(caregivers: list, shift_hour: int = 6, system_pressure: float = 0.5) -> dict:
     """
     Predict fatigue for all caregivers. Returns dict keyed by caregiver id.
     """
-    return {cg["id"]: predict_fatigue(cg, shift_hour) for cg in caregivers}
+    return {cg["id"]: predict_fatigue(cg, shift_hour, system_pressure) for cg in caregivers}
 
 
 # ── FEATURE IMPORTANCE (for UI explainability panel) ────────────────────────

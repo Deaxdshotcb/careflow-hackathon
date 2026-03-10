@@ -2,6 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    @apply bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100;
+  }
+
+  /* Custom Scrollbar for Chrome, Safari and Edge */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-300 dark:bg-zinc-800 rounded-full transition-colors;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-400 dark:bg-zinc-700;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Professional Scroll-Reveal Animation */
+  @keyframes slide-in-bottom-fast {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-reveal {
+    animation: slide-in-bottom-fast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Glass Mask for Scroll Areas */
+  .mask-v-fade {
+    mask-image: linear-gradient(to bottom, transparent, black 40px, black calc(100% - 40px), transparent);
+  }
+
+  /* Medical Pulse for Emergencies */
+  @keyframes medical-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4);
+    }
+
+    70% {
+      box-shadow: 0 0 0 20px rgba(225, 29, 72, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+    }
+  }
+
+  .animate-medical-pulse {
+    animation: medical-pulse 2s infinite;
+  }
+
+  /* Neural Mesh Backdrop */
+  @keyframes mesh-drift {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+
+    50% {
+      transform: translate(-2%, 2%) scale(1.05);
+    }
+
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+  }
+
+  .neural-mesh {
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(225, 29, 72, 0.03) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(225, 29, 72, 0.03) 0, transparent 50%);
+    animation: mesh-drift 20s ease-in-out infinite;
+  }
 }

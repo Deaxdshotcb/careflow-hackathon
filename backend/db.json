@@ -472,6 +472,25 @@
             ],
             "assigned_to": "Maria John",
             "completed_at": 1773123703.5120614
+        },
+        {
+            "id": "EP1773218025",
+            "resident": "Mr. Thomas",
+            "resident_name": "Mr. Thomas",
+            "room_number": 302,
+            "floor": 3,
+            "type": "cardiac",
+            "episode_type": "cardiac",
+            "severity": "critical",
+            "trend": "worsening",
+            "alarms": [],
+            "timestamp": 1773218025.5433977,
+            "status": "open",
+            "caregiver_id": "cg504",
+            "recommended": "Sarah Chen",
+            "recommended_fatigue": 65.3,
+            "ai_explanation": "Sarah Chen scores 47.0% \u2014 fully available, light workload, trained in cardiac. ML fatigue: 65.3/100 (High) \u2014 Limit to non-critical tasks only. Schedule break soon.",
+            "external_alerts": []
         }
     ]
 }

@@ -85,6 +85,209 @@
             "username": "addwina40",
             "password": "care8650",
             "burnout_flag": true
+        },
+        {
+            "name": "Liam Smith",
+            "role": "caregiver",
+            "floor": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "fall",
+                "mobility assistance"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/male.png",
+            "id": "cg101",
+            "username": "liamsmith",
+            "password": "care1234",
+            "burnout_flag": false
+        },
+        {
+            "name": "Emma Wilson",
+            "role": "nurse",
+            "floor": 2,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "clinical",
+                "medication",
+                "cardiac"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/female.png",
+            "id": "cg102",
+            "username": "emmawilson",
+            "password": "care2345",
+            "burnout_flag": false
+        },
+        {
+            "name": "Noah Brown",
+            "role": "caregiver",
+            "floor": 3,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "hygiene",
+                "dementia"
+            ],
+            "assignments_today": 1,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 0,
+            "photo_url": "/assets/images/male.png",
+            "id": "cg103",
+            "username": "noahbrown",
+            "password": "care3456",
+            "burnout_flag": true
+        },
+        {
+            "name": "Olivia Garcia",
+            "role": "nurse",
+            "floor": 4,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "emergency",
+                "icu",
+                "respiratory"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/female.png",
+            "id": "cg104",
+            "username": "oliviagarcia",
+            "password": "care4567",
+            "burnout_flag": false
+        },
+        {
+            "name": "William Jones",
+            "role": "caregiver",
+            "floor": 5,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "nutrition",
+                "mobility"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/male.png",
+            "id": "cg105",
+            "username": "williamjones",
+            "password": "care5678",
+            "burnout_flag": false
+        },
+        {
+            "name": "Sophia Martinez",
+            "role": "nurse",
+            "floor": 1,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "wound care",
+                "pediatrics",
+                "general"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/female.png",
+            "id": "cg106",
+            "username": "sophiamartinez",
+            "password": "care6789",
+            "burnout_flag": false
+        },
+        {
+            "name": "James Taylor",
+            "role": "caregiver",
+            "floor": 2,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "companion",
+                "transport"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/male.png",
+            "id": "cg107",
+            "username": "jamestaylor",
+            "password": "care7890",
+            "burnout_flag": false
+        },
+        {
+            "name": "Isabella Anderson",
+            "role": "nurse",
+            "floor": 3,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "oncology",
+                "geriatrics"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/female.png",
+            "id": "cg108",
+            "username": "isabellaanderson",
+            "password": "care8901",
+            "burnout_flag": false
+        },
+        {
+            "name": "Benjamin Hernandez",
+            "role": "caregiver",
+            "floor": 4,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "behavioral",
+                "support"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/male.png",
+            "id": "cg109",
+            "username": "benjaminh",
+            "password": "care9012",
+            "burnout_flag": false
+        },
+        {
+            "name": "Mia Moore",
+            "role": "nurse",
+            "floor": 5,
+            "status": "available",
+            "active_tasks": 0,
+            "active_episodes": 0,
+            "skills": [
+                "triage",
+                "emergency"
+            ],
+            "assignments_today": 0,
+            "eta_minutes": 0,
+            "last_assigned_mins_ago": 60,
+            "photo_url": "/assets/images/female.png",
+            "id": "cg110",
+            "username": "miamoore",
+            "password": "care0123",
+            "burnout_flag": false
         }
     ],
     "history": [
@@ -491,6 +694,33 @@
             "recommended_fatigue": 65.3,
             "ai_explanation": "Sarah Chen scores 47.0% \u2014 fully available, light workload, trained in cardiac. ML fatigue: 65.3/100 (High) \u2014 Limit to non-critical tasks only. Schedule break soon.",
             "external_alerts": []
+        },
+        {
+            "id": "EP1773394131",
+            "resident": "Mr. Thomas",
+            "resident_name": "Mr. Thomas",
+            "room_number": 302,
+            "floor": 3,
+            "type": "cardiac",
+            "episode_type": "cardiac",
+            "severity": "emergency",
+            "trend": "worsening",
+            "alarms": [],
+            "timestamp": 1773394131.7093887,
+            "status": "completed",
+            "caregiver_id": "cg103",
+            "recommended": "Noah Brown",
+            "recommended_fatigue": 30.4,
+            "ai_explanation": "Noah Brown scores 79.0% \u2014 same floor as Mr. Thomas, fully available, light workload. ML fatigue: 30.4/100 (Moderate) \u2014 Suitable for standard assignments. Monitor workload.",
+            "external_alerts": [
+                {
+                    "type": "Ambulance",
+                    "timestamp": 1773394142.8788817
+                }
+            ],
+            "assigned_to": "Noah Brown",
+            "final_report": "Error generating automated report: 'choices'",
+            "completed_at": 1773394343.1813962
         }
     ]
 }

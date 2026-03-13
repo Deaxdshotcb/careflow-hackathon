@@ -36,6 +36,7 @@ export default function App() {
     active_tasks: 0, active_episodes: 0, assignments_today: 0,
     skills: "fall, dementia", photo_url: ""
   });
+  const [predictiveAlerts, setPredictiveAlerts] = useState([]);
 
   // --- Session Persistence ---
   useEffect(() => {
@@ -49,8 +50,16 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [cg, sum, hist] = await Promise.all([fetch(`${API}/caregivers`), fetch(`${API}/shift/summary`), fetch(`${API}/episodes/history`)]);
-      setCaregivers(await cg.json()); setSummary(await sum.json()); setHistory(await hist.json());
+      const [cg, sum, hist, pred] = await Promise.all([
+        fetch(`${API}/caregivers`), 
+        fetch(`${API}/shift/summary`), 
+        fetch(`${API}/episodes/history`),
+        fetch(`${API}/predictive/alerts`)
+      ]);
+      setCaregivers(await cg.json()); 
+      setSummary(await sum.json()); 
+      setHistory(await hist.json());
+      setPredictiveAlerts(await pred.json());
     } catch (e) { console.error("Sync Error", e); }
   };
 
@@ -260,13 +269,14 @@ export default function App() {
 
   const tabs = [
     { id: "dispatch", label: "Dispatch", icon: "" },
+    { id: "live", label: "Live Operations", icon: "" },
     { id: "fatigue", label: "Fatigue Analysis", icon: "" },
     { id: "caregivers", label: "Caregivers", icon: "" },
     { id: "history", label: "History", icon: "" },
   ];
 
   if (!user) return <LoginPage onLogin={handleLogin} />;
-  if (user.role === 'caretaker') return <CaretakerDashboard user={user} onLogout={handleLogout} showToast={showToast} />;
+  if (user.role === 'caretaker') return <CaretakerDashboard user={user} onLogout={handleLogout} showToast={showToast} darkMode={darkMode} setDarkMode={setDarkMode} />;
 
   return (
     <div className={`${darkMode ? 'dark' : ''} min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans transition-colors duration-700 selection:bg-indigo-500 selection:text-white relative overflow-hidden`}>
@@ -295,21 +305,25 @@ export default function App() {
             {summary && (
               <div className="hidden xl:flex gap-10 items-center">
                 {[
-                  { l: "Available Staff", v: summary.available_now, c: "text-emerald-500" },
-                  { l: "High Fatigue", v: summary.high_fatigue_count, c: "text-rose-500" },
-                  { l: "Total Assignments", v: summary.total_assignments_today, c: "text-indigo-500" }
+                  { l: "Available Staff", v: summary.available_now, c: "text-emerald-500", t: "caregivers" },
+                  { l: "High Fatigue", v: summary.high_fatigue_count, c: "text-rose-500", t: "fatigue" },
+                  { l: "Total Assignments", v: summary.total_assignments_today, c: "text-indigo-500", t: "history" }
                 ].map(s => (
-                  <div key={s.l} className="text-right">
-                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1.5">{s.l}</p>
-                    <p className={`text-xl font-black ${s.c} leading-none tracking-tighter`}>{s.v}</p>
-                  </div>
+                  <button 
+                    key={s.l} 
+                    onClick={() => setTab(s.t)}
+                    className="text-right hover:opacity-70 transition-opacity active:scale-95"
+                  >
+                    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-1.5">{s.l}</p>
+                    <p className={`text-2xl font-bold ${s.c} leading-none tracking-tighter`}>{s.v}</p>
+                  </button>
                 ))}
               </div>
             )}
             <button onClick={() => setDarkMode(!darkMode)} className="w-14 h-14 rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-2xl transition-all shadow-lg active:scale-90 hover:shadow-indigo-500/10">
               {darkMode ? "🌙" : "☀️"}
             </button>
-            <button onClick={handleLogout} className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
+            <button onClick={handleLogout} className="bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-bold uppercase tracking-widest px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
               Sign Out
             </button>
           </div>
@@ -321,13 +335,15 @@ export default function App() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`relative px-8 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${tab === t.id
-                ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 translate-y-[-2px] border-indigo-500"
-                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 border-transparent hover:bg-white/80 dark:hover:bg-white/10 hover:backdrop-blur-xl hover:border-zinc-200 dark:hover:border-zinc-700/50 hover:shadow-2xl hover:shadow-black/5"
-                }`}
+              className={`relative px-8 py-3 rounded-2xl transition-all duration-300 group ${
+                tab === t.id
+                  ? "bg-zinc-900 dark:bg-white/10 text-white shadow-lg"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+              }`}
             >
-              {t.label}
-              {tab === t.id && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_10px_white]" />}
+              <span className="text-[13px] font-bold uppercase tracking-[0.2em] relative z-10 transition-colors">
+                {t.label}
+              </span>
             </button>
           ))}
         </nav>
@@ -356,91 +372,160 @@ export default function App() {
               )}
 
               {(!recommendations && !loading) && (
-                <div className="relative h-[280px] rounded-[3rem] overflow-hidden mb-12 group shadow-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative h-[180px] rounded-[2.5rem] overflow-hidden mb-10 group shadow-xl border border-zinc-200 dark:border-zinc-800">
                   <img src={IMAGES.hero} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms] blur-[1px] brightness-[0.4]" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent flex flex-col justify-center p-12">
+                  <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent flex flex-col justify-center p-10">
                     <div className="max-w-xl">
-                      <span className="inline-block bg-indigo-600 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.3em] mb-6 text-white shadow-xl">System Operational</span>
-                      <h2 className="text-5xl font-black text-white tracking-tightest leading-none mb-4">STAFF DISPATCH</h2>
-                      <p className="text-sm text-zinc-400 font-bold uppercase tracking-widest opacity-80">Neural Coordination & Intelligence Platform</p>
+                      <span className="inline-block bg-indigo-600 px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.2em] mb-4 text-white shadow-xl">System Operational</span>
+                      <h2 className="text-5xl font-bold text-white tracking-tightest leading-none mb-3">STAFF DISPATCH</h2>
+                      <p className="text-[13px] text-zinc-400 font-semibold uppercase tracking-widest opacity-80">Neural Coordination Platform</p>
                     </div>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 relative">
-                <div className="lg:col-span-4 lg:sticky lg:top-44 self-start max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-none space-y-12 pb-10 mask-v-fade">
-                  <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-10 shadow-2xl">
-                    <div className="flex items-center justify-between mb-10">
-                      <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-4">
-                        <span className={`w-4 h-4 rounded-full ${isPaused ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse-slow'}`} />
-                        AI Dispatch Sensor
+                <div className="lg:col-span-4 lg:sticky lg:top-44 self-start space-y-8 pb-10">
+                  <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-2xl">
+                    <div className="flex items-center justify-between mb-8">
+                      <h2 className="text-xl font-bold uppercase tracking-tighter flex items-center gap-3">
+                        <span className={`w-3.5 h-3.5 rounded-full ${isPaused ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse-slow'}`} />
+                        Dispatch Sensor
                       </h2>
                       <button
                         onClick={() => setIsPaused(!isPaused)}
-                        className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border transition-all active:scale-95 ${isPaused ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}`}
+                        className={`text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition-all active:scale-95 ${isPaused ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}`}
                       >
-                        {isPaused ? "▶ Start Auto-Monitor" : "⏸ Pause Auto-Monitor"}
+                        {isPaused ? "▶ Auto" : "⏸ Pause"}
                       </button>
                     </div>
 
-                    <div className="space-y-8">
-                      {[{ l: "Resident Name", k: "resident_name", t: "text" }, { l: "Room Number", k: "room_number", t: "number" }, { l: "Floor", k: "floor", t: "number" }].map(f => (
-                        <div key={f.k}>
-                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-3 px-1">{f.l}</label>
-                          <input type={f.t} value={form[f.k]} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))}
-                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800/50 outline-none" />
-                        </div>
-                      ))}
-
-                      <div className="grid grid-cols-1 gap-6">
-                        {[{ l: "Episode Type", k: "episode_type", o: ["cardiac", "fall", "respiratory", "wandering", "unconscious", "seizure", "trauma"] }, { l: "Priority", k: "severity", o: ["emergency", "critical", "warning", "info"] }].map(f => (
-                          <div key={f.k}>
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-3 px-1">{f.l}</label>
-                            <select value={form[f.k]} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))}
-                              className={`w-full bg-zinc-50 dark:bg-zinc-900 border ${form.severity === 'emergency' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-zinc-200 dark:border-zinc-800'} rounded-2xl px-6 py-5 text-sm font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all outline-none`}>
-                              {f.o.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                          </div>
-                        ))}
+                    <div className="space-y-6">
+                      <div>
+                        <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2 px-1">Resident Name</label>
+                        <input type="text" value={form.resident_name} onChange={e => setForm(p => ({ ...p, resident_name: e.target.value }))}
+                          className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3.5 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none" />
                       </div>
 
-                      <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2 px-1">Room</label>
+                          <input type="number" value={form.room_number} onChange={e => setForm(p => ({ ...p, room_number: e.target.value }))}
+                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3.5 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none" />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2 px-1">Floor</label>
+                          <input type="number" value={form.floor} onChange={e => setForm(p => ({ ...p, floor: e.target.value }))}
+                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3.5 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2 px-1">Type</label>
+                          <select value={form.episode_type} onChange={e => setForm(p => ({ ...p, episode_type: e.target.value }))}
+                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest appearance-none cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all outline-none">
+                            {["cardiac", "fall", "respiratory", "wandering", "unconscious", "seizure", "trauma"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2 px-1">Priority</label>
+                          <select value={form.severity} onChange={e => setForm(p => ({ ...p, severity: e.target.value }))}
+                            className={`w-full bg-zinc-50 dark:bg-zinc-900 border ${form.severity === 'emergency' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-zinc-200 dark:border-zinc-800'} rounded-xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest appearance-none cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-all outline-none`}>
+                            {["emergency", "critical", "warning", "info"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-2">
                         <button
                           onClick={() => handleRecommend()}
                           disabled={loading}
-                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50"
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl text-[13px] uppercase tracking-[0.2em] shadow-lg shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50"
                         >
-                          {loading ? "Analyzing Data..." : "🚀 Trigger Smart Scan"}
+                          {loading ? "Analyzing..." : "🚀 Trigger Scan"}
                         </button>
 
-                        <div className="flex items-center justify-between px-2">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setAutoAssign(!autoAssign)}
-                              className={`w-10 h-5 rounded-full transition-colors relative ${autoAssign ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
-                            >
-                              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${autoAssign ? 'left-6' : 'left-1'}`} />
-                            </button>
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Auto-Assign Best Match</span>
-                          </div>
+                        <div className="flex items-center justify-between px-1">
+                          <button
+                            onClick={() => setAutoAssign(!autoAssign)}
+                            className="flex items-center gap-2 group"
+                          >
+                            <div className={`w-8 h-4 rounded-full transition-colors relative ${autoAssign ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}>
+                              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${autoAssign ? 'left-4.5' : 'left-0.5'}`} />
+                            </div>
+                            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">Auto-Match</span>
+                          </button>
                           <button
                             onClick={() => handleSimulate(false)}
-                            className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:underline"
+                            className="text-[11px] font-bold text-indigo-500 uppercase tracking-widest hover:underline"
                           >
-                            Randomize Entry
+                            Randomize
                           </button>
                         </div>
                       </div>
 
-                      <div className="p-8 bg-zinc-50 dark:bg-black/40 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center">
-                        <div className="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-                        </div>
-                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-relaxed">Powered by Llama 3 & Groq AI // Neural Dispatch Optimization</p>
+                      <div className="p-6 bg-zinc-50 dark:bg-black/20 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center">
+                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest leading-relaxed">Groq AI Optimization Service</p>
                       </div>
                     </div>
                   </div>
+
+                  {predictiveAlerts.length > 0 && !loading && (
+                    <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-2xl overflow-hidden relative group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-rose-500/10 transition-colors" />
+                      <h3 className="text-[12px] font-bold uppercase text-rose-500 tracking-widest mb-6 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                        Neural Sentinel Alerts
+                      </h3>
+                      <div className="space-y-6">
+                        {predictiveAlerts.map((alert, i) => (
+                          <div key={i} className="relative z-10 p-5 bg-zinc-50 dark:bg-zinc-800/40 rounded-3xl border border-zinc-100 dark:border-zinc-800 group-hover:border-rose-500/30 transition-colors">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <h4 className="text-[14px] font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{alert.resident}</h4>
+                                <p className="text-[13px] font-semibold text-rose-500">{alert.risk}</p>
+                              </div>
+                              <span className="text-[11px] font-bold px-3 py-1 bg-rose-500 text-white rounded-lg shadow-sm">{alert.confidence}% Conf.</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="text-center">
+                                    <span className="text-[11px] font-bold text-zinc-400 block uppercase mb-1">HR</span>
+                                    <span className="text-[14px] font-bold text-indigo-500">{alert.vitals.hr}</span>
+                                </div>
+                                <div className="text-center border-x border-zinc-200 dark:border-zinc-800">
+                                    <span className="text-[11px] font-bold text-zinc-400 block uppercase mb-1">OX</span>
+                                    <span className="text-[14px] font-bold text-emerald-500">{alert.vitals.ox}%</span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="text-[11px] font-bold text-zinc-400 block uppercase mb-1">Mobility</span>
+                                    <span className="text-[14px] font-bold text-amber-500">{alert.vitals.mobility}</span>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setForm({
+                                        resident_name: alert.resident,
+                                        room_number: 101, // Mock
+                                        floor: 1, // Mock
+                                        episode_type: alert.risk.toLowerCase().includes('fall') ? 'fall' : alert.risk.toLowerCase().includes('cardiac') ? 'cardiac' : 'warning',
+                                        severity: alert.confidence > 90 ? 'critical' : 'warning',
+                                        trend: 'worsening',
+                                        alarms: ["Sentinel Prediction"]
+                                    });
+                                    handleRecommend({
+                                        resident_name: alert.resident, room_number: 101, floor: 1,
+                                        episode_type: 'fall', severity: 'critical', trend: 'worsening', alarms: []
+                                    });
+                                }}
+                                className="w-full mt-5 py-3 bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-[12px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                Pre-emptive Dispatch
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {allScores.length > 0 && !loading && (
                     <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 p-10 shadow-2xl">
@@ -464,47 +549,46 @@ export default function App() {
 
                 <div className="lg:col-span-8">
                   {!recommendations && !loading && (
-                    <div className="h-full min-h-[300px] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem] p-8 text-center">
-                      <div className="w-20 h-20 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-8 border border-zinc-100 dark:border-zinc-800">
-                        <span className="text-4xl">🛰️</span>
+                    <div className="h-full flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-8 text-center min-h-[500px]">
+                      <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 border border-zinc-100 dark:border-zinc-800">
+                        <span className="text-3xl">🛰️</span>
                       </div>
-                      <h3 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter mb-4">Awaiting Dispatch Directives</h3>
-                      <p className="text-zinc-500 max-w-md text-sm font-medium leading-relaxed opacity-70 px-4">The ML Selection Engine is monitoring facility telemetry data to deploy the optimal caregiver to target rooms in real-time.</p>
+                      <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tighter mb-4 uppercase">Awaiting Directives</h3>
+                      <p className="text-zinc-500 max-w-sm text-[13px] font-semibold uppercase tracking-widest opacity-60 px-4">ML Selection Engine monitoring telemetry...</p>
                     </div>
                   )}
                   {loading && (
-                    <div className="h-full min-h-[600px] flex flex-col items-center justify-center bg-zinc-900 border border-white/5 rounded-[4rem] p-24 text-center relative overflow-hidden">
+                    <div className="h-full min-h-[450px] flex flex-col items-center justify-center bg-zinc-900 border border-white/5 rounded-[3rem] p-16 text-center relative overflow-hidden">
                       <div className="absolute inset-0 z-0 opacity-10">
                         <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 scale-[3]" />
                         <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 delay-300 scale-[2]" />
                         <div className="absolute inset-0 border border-white rounded-full animate-ping duration-1000 delay-700 scale-[1]" />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-transparent w-full h-full rotate-45 origin-center animate-spin-slow" />
                       </div>
 
                       <div className="relative z-10">
-                        <div className="relative w-48 h-48 mb-12 mx-auto">
-                          <div className="absolute inset-0 bg-indigo-600/20 rounded-[3rem] blur-3xl animate-pulse" />
+                        <div className="relative w-36 h-36 mb-8 mx-auto">
+                          <div className="absolute inset-0 bg-indigo-600/20 rounded-[2.5rem] blur-3xl animate-pulse" />
                           <NeuralAvatar
                              src={caregivers[scanIndex]?.photo_url}
                              name={caregivers[scanIndex]?.name}
-                             className="w-full h-full rounded-[3rem] border-4 border-indigo-500 shadow-3xl text-6xl"
+                             className="w-full h-full rounded-[2.5rem] border-4 border-indigo-500 shadow-3xl text-5xl"
                              role={caregivers[scanIndex]?.role}
                           />
-                          <div className="absolute -top-4 -right-4 bg-indigo-600 text-white text-[10px] font-black px-4 py-2 rounded-xl animate-bounce">SCANNING STAFF</div>
+                          <div className="absolute -top-3 -right-3 bg-indigo-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg animate-bounce uppercase">SCANNING</div>
                         </div>
 
-                        <h3 className="text-5xl font-black text-white tracking-tightest mb-4">ML SELECTION ENGINE</h3>
-                        <p className="text-indigo-400 font-bold uppercase tracking-[0.5em] mb-10 text-xs">Matching Best Responder: {caregivers[scanIndex]?.name?.toUpperCase()}</p>
+                        <h3 className="text-3xl font-black text-white tracking-tightest mb-2">ML OPTIMIZER</h3>
+                        <p className="text-indigo-400 font-bold uppercase tracking-[0.4em] mb-8 text-[9px]">Matching Responder: {caregivers[scanIndex]?.name?.toUpperCase()}</p>
 
-                        <div className="justify-center gap-2 flex">
-                          {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />)}
+                        <div className="justify-center gap-1.5 flex">
+                          {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />)}
                         </div>
                       </div>
 
-                      <div className="absolute bottom-20 left-0 w-full flex justify-center gap-12 text-[10px] font-black text-zinc-600 uppercase tracking-widest px-20">
-                        <p className="animate-pulse">Analyzing Proximity</p>
-                        <p className="animate-pulse delay-75">Fatigue Calculation</p>
-                        <p className="animate-pulse delay-150">Skill Matching</p>
+                      <div className="absolute bottom-12 left-0 w-full flex justify-center gap-8 text-[8px] font-black text-zinc-600 uppercase tracking-widest px-10">
+                        <p className="animate-pulse">Analyzing Load</p>
+                        <p className="animate-pulse delay-75">Fatigue Calc</p>
+                        <p className="animate-pulse delay-150">Proximity</p>
                       </div>
                     </div>
                   )}
@@ -547,6 +631,115 @@ export default function App() {
           )}
 
           {tab === "fatigue" && <FatigueTab />}
+
+          {tab === "live" && (
+            <div className="animate-in fade-in duration-1000">
+              <div className="mb-16">
+                <h2 className="text-6xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none mb-4">Live Operations</h2>
+                <p className="text-lg text-zinc-500 font-medium opacity-80 uppercase tracking-widest text-[13px] font-black">Real-time Mission Tracking Center</p>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
+                <div className="xl:col-span-8 space-y-8">
+                  <h3 className="text-[14px] font-black text-zinc-400 uppercase tracking-widest px-2">Active Field Deployments</h3>
+                  {history.filter(ep => ep.status === 'open').length === 0 ? (
+                    <div className="py-40 bg-white/5 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem] flex flex-col items-center justify-center text-center">
+                      <span className="text-8xl mb-10 opacity-20">📡</span>
+                      <p className="text-zinc-500 font-black uppercase tracking-widest text-lg">No Active Deployments</p>
+                      <p className="text-zinc-400 font-medium">All units are currently on standby or routine rounds.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {history.filter(ep => ep.status === 'open').map(ep => {
+                        const cg = caregivers.find(c => c.id === ep.caregiver_id || c.name === ep.assigned_to);
+                        return (
+                          <div key={ep.id} className="group bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 p-8 shadow-2xl flex flex-col sm:flex-row items-center gap-10 transition-all hover:border-indigo-500/30">
+                            <div className="flex items-center gap-6">
+                              <div className="relative">
+                                <NeuralAvatar src={cg?.photo_url} name={cg?.name || "???"} role={cg?.role} className="w-20 h-20 rounded-3xl ring-4 ring-indigo-500/10" />
+                                <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">ON_SITE</div>
+                              </div>
+                              <div>
+                                <h4 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tighter mb-1">{cg?.name || ep.assigned_to}</h4>
+                                <p className="text-[12px] font-black text-indigo-500 uppercase tracking-widest">{cg?.role} // Dispatch Alpha</p>
+                              </div>
+                            </div>
+
+                            <div className="hidden md:block w-px h-16 bg-zinc-200 dark:bg-zinc-800" />
+
+                            <div className="flex-1">
+                              <div className="flex items-center gap-4 mb-3">
+                                <span className={`w-3.5 h-3.5 rounded-full ${SEVERITY_COLOR[ep.severity]?.bg} animate-pulse`} />
+                                <h5 className="text-[13px] font-black text-zinc-400 uppercase tracking-widest">Target: <span className="text-zinc-900 dark:text-white">{ep.resident || ep.resident_name} (RM {ep.room_number})</span></h5>
+                              </div>
+                              <div className="flex gap-4">
+                                <span className="bg-zinc-100 dark:bg-zinc-800 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-zinc-500 border border-zinc-200 dark:border-zinc-700">Type: {ep.type}</span>
+                                <span className="bg-zinc-100 dark:bg-zinc-800 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-zinc-500 border border-zinc-200 dark:border-zinc-700">Started: {new Date(ep.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="shrink-0">
+                               <div className="text-right">
+                                  <p className="text-[11px] font-black text-zinc-400 uppercase tracking-tighter mb-1">Mission Elapsed</p>
+                                  <p className="text-3xl font-black text-zinc-900 dark:text-white tracking-tightest leading-none">
+                                    {Math.floor((Date.now()/1000 - ep.timestamp)/60)}<span className="text-lg opacity-40 ml-1">MIN</span>
+                                  </p>
+                               </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="xl:col-span-4 space-y-12">
+                   <div className="bg-zinc-900 rounded-[3rem] p-10 border border-white/5 overflow-hidden relative">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
+                      <h3 className="text-[14px] font-black text-indigo-500 uppercase tracking-widest mb-10 flex items-center gap-3">
+                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                        Staff Availability
+                      </h3>
+                      <div className="space-y-8">
+                        {['available', 'rounds', 'break'].map(stat => {
+                          const count = caregivers.filter(c => c.status === stat).length;
+                          const color = stat === 'available' ? 'emerald' : stat === 'rounds' ? 'indigo' : 'amber';
+                          return (
+                            <div key={stat} className="flex justify-between items-center group cursor-pointer" onClick={() => setTab('caregivers')}>
+                               <div>
+                                  <p className="text-xs font-black text-zinc-500 uppercase tracking-widest group-hover:text-white transition-colors">{stat}</p>
+                                  <div className="flex gap-1 mt-2">
+                                    {Array.from({length: Math.min(count, 8)}).map((_, i) => (
+                                      <div key={i} className={`w-3.5 h-3.5 rounded-lg bg-${color}-500/20 border border-${color}-500/40`} />
+                                    ))}
+                                  </div>
+                               </div>
+                               <span className={`text-4xl font-black text-${color}-500 tracking-tighter`}>{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                   </div>
+
+                   <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-zinc-200 dark:border-zinc-800">
+                      <h3 className="text-[13px] font-black text-zinc-400 uppercase tracking-widest mb-6 px-1">Tactical Legend</h3>
+                      <div className="space-y-4">
+                         {[
+                           { l: "High Priority", c: "bg-rose-500" },
+                           { l: "Clinical Lead", c: "bg-indigo-500" },
+                           { l: "Standard Response", c: "bg-emerald-500" }
+                         ].map(item => (
+                           <div key={item.l} className="flex items-center gap-4 p-3 bg-zinc-50 dark:bg-black/20 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                             <div className={`w-3 h-3 rounded-full ${item.c}`} />
+                             <span className="text-[11px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{item.l}</span>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {tab === "caregivers" && (
             <div className="animate-in fade-in duration-1000">

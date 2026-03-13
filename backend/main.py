@@ -40,6 +40,13 @@ class AssignRequest(BaseModel):
     resident_name: str
     ai_explanation: Optional[str] = None
 
+class ReportRequest(BaseModel):
+    episode_id: str
+    caregiver_name: str
+    resident_name: str
+    episode_type: str
+    notes: Optional[str] = ""
+
 class CompleteEpisodeRequest(BaseModel):
     episode_id: str
     caregiver_id: str
@@ -89,7 +96,31 @@ def get_system_pressure():
     # Ratio: 1.0 means 1 case per staff. > 1.5 is high pressure.
     return round(active / len(CAREGIVERS), 2)
 
-# ... (omitting rest for brevity in thought, but will include full revert in tool call)
+def ai_generate_report(req: ReportRequest):
+    if not GROQ_API_KEY or GROQ_API_KEY == "your_groq_api_key_here":
+        return f"Incident Report for {req.resident_name}: {req.episode_type}. Caregiver {req.caregiver_name} attended. Outcome stable."
+    
+    prompt = f"""You are a clinical documentation AI. Create a professional, 3-paragraph medical incident report for an elderly care facility.
+    Resident: {req.resident_name}
+    Incident Type: {req.episode_type}
+    Attending Responder: {req.caregiver_name}
+    Self-Reported Notes: {req.notes}
+    Tone: Professional, clinical, precise. Focus on observations, intervention, and follow-up. Keep it under 150 words."""
+    
+    try:
+        res = requests.post("https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization":f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"},
+            json={"model":"llama3-8b-8192","messages":[{"role":"user","content":prompt}],
+                  "max_tokens":250, "temperature":0.3}, timeout=10)
+        
+        data = res.json()
+        if res.status_code != 200:
+            error_msg = data.get("error", {}).get("message", "Unknown API error")
+            return f"AI Report Generation Error: {error_msg}"
+            
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        return f"System Error generating automated report: {str(e)}"
 
 # ── SCORING ENGINE ───────────────────────────────────────────────────────────
 STATUS_SCORE = {"available":1.0,"rounds":0.6,"attending":0.4,"break":0.2,"out":0.0}
@@ -399,6 +430,36 @@ def simulate_alarm():
             "episode_type":t,"severity":sev,
             "trend":random.choice(["worsening","stable","improving"]),
             "alarms":random.sample(alarm_map[t],k=min(2,len(alarm_map[t])))}
+
+@app.get("/predictive/alerts")
+def get_predictive_alerts():
+    residents = ["Mr. Abraham", "Mrs. Lindstrom", "Mr. Sato", "Mrs. Kowalski"]
+    risks = ["High Fall Probability", "Cardiac Irregularity", "Early Respiratory Distress", "Potential Wandering Episode"]
+    indices = random.sample(range(len(residents)), k=2)
+    return [
+        {
+            "resident": residents[i],
+            "risk": risks[i],
+            "confidence": random.randint(78, 96),
+            "vitals": {
+                "hr": random.randint(95, 120) if "Cardiac" in risks[i] else random.randint(70, 85),
+                "ox": random.randint(88, 92) if "Respiratory" in risks[i] else random.randint(96, 99),
+                "mobility": random.randint(10, 30) if "Fall" in risks[i] else random.randint(70, 90)
+            },
+            "eta_to_incident": f"{random.randint(15, 120)}m"
+        } for i in indices
+    ]
+
+@app.post("/report/generate")
+def generate_report(req: ReportRequest):
+    report_text = ai_generate_report(req)
+    # Save report to history
+    for ep in EPISODE_HISTORY:
+        if ep["id"] == req.episode_id:
+            ep["final_report"] = report_text
+            save_db()
+            break
+    return {"success": True, "report": report_text}
 
 @app.get("/shift/summary")
 def shift_summary():

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,11 +7,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    font-size: 110%; /* Globally scale up all text by 10% */
   }
 
   body {
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    @apply bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100;
+    @apply font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased tracking-normal;
   }
 
   /* Custom Scrollbar for Chrome, Safari and Edge */
